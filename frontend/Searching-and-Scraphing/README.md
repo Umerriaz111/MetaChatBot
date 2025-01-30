@@ -10,3 +10,6 @@ Together, these tools form an integrated solution that simplifies how users acce
 
 Unlock the full potential of the digital world with the **Custom Search Engine (SearXNG)** and **Advanced Scraping Tool**—empowering you to search smarter and work faster.
 # Remaining Work:
+1.Searching APIS remaining
+2.History Retrival remaining
+3.Previous Chat in Sidebar is Remaining
