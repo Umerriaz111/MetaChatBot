@@ -76,7 +76,13 @@ MIDDLEWARE = [
 ]
 
 # Allow all domains (for development purposes)
-CORS_ALLOW_ALL_ORIGINS = True  # You can restrict this to specific domains in production
+# CORS_ALLOW_ALL_ORIGINS = True  # For development, allows all origins
+
+# Or specify the exact allowed origin(s)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:517",  # React frontend
+]
+
 ROOT_URLCONF = 'myproject.urls'
 
 TEMPLATES = [
@@ -151,11 +157,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ],
 }
+
