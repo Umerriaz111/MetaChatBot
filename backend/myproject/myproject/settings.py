@@ -43,7 +43,23 @@ INSTALLED_APPS = [
     'api',
     #  cSpell: ignore corsheaders
     'corsheaders',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'django.contrib.sites',  # Required for allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',  # Add this line
+    'allauth.socialaccount.providers.google',  # Add if using Google OAuth (optional)
+
+    # REST authentication
+    'dj_rest_auth.registration',
 ]
+
+SITE_ID = 1  # Required for allauth
+# Disable email verification
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Set to 'none' to disable email verification
+ACCOUNT_EMAIL_REQUIRED = False  # Don't require email during registration
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -54,6 +70,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Add this line
+    'allauth.account.middleware.AccountMiddleware',
+
 ]
 
 # Allow all domains (for development purposes)
@@ -130,3 +149,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
