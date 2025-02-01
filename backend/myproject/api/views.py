@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import requests
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
@@ -70,23 +71,67 @@ class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
 #             return Response(response)
 #         except Exception as e:
 #             return Response(f'Error due to {e}',status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['GET'])
+# def search(request):
+#     if request.method == 'GET':
+#         try:
+#             query = request.GET.get('query')
+#             if not query:
+#                 return Response('Query parameter is missing', status=status.HTTP_400_BAD_REQUEST)
+
+#             # Log the query for debugging
+#             print(f"Received query: {query}")
+            
+
+#             search = SearxSearchWrapper(searx_host="http://127.0.0.1:8080")
+#             response = search.run(query)
+#             output={"response":response}
+#             print( "This is response", output)
+#             return Response(output)
+#         except Exception as e:
+#             print(f"Error: {str(e)}")  # Log the error for debugging
+#             return Response(f'Error due to {e}', status=status.HTTP_400_BAD_REQUEST)
+        
+        
 @api_view(['GET'])
 def search(request):
     if request.method == 'GET':
+        query = request.GET.get('query')
+        if not query:
+            return Response('Query parameter is missing', status=status.HTTP_400_BAD_REQUEST)
+
+        # Log the query for debugging
+        print(f"Received query: {query}")
+        
+        searxng_url = 'http://127.0.0.1:8080/search'
+        data = {
+            'q': query,
+            'format': 'json',
+            'category': 'general',  # Optional: specify categories if needed
+        }
+        
         try:
-            query = request.GET.get('query')
-            if not query:
-                return Response('Query parameter is missing', status=status.HTTP_400_BAD_REQUEST)
-
-            # Log the query for debugging
-            print(f"Received query: {query}")
+            # Send POST request to the search engine (SearxNG)
+            response = requests.post(searxng_url, data=data)
+            response.raise_for_status()  # This will raise an HTTPError for bad responses
             
+            # Parse the response JSON
+            results = response.json()
+            
+            # Return the results as a Response
+            return Response(results, status=status.HTTP_200_OK)
 
-            search = SearxSearchWrapper(searx_host="http://127.0.0.1:8080")
-            response = search.run(query)
-            output={"response":response}
-            print( "This is response", output)
-            return Response(output)
+        except requests.exceptions.RequestException as e:
+            # Log the error and return a 500 status for request-related errors
+            print(f"Request error: {str(e)}")
+            return Response(f'Error during search request: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except ValueError as e:
+            # Handle JSON parsing errors
+            print(f"JSON parsing error: {str(e)}")
+            return Response(f'Error parsing response: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         except Exception as e:
-            print(f"Error: {str(e)}")  # Log the error for debugging
-            return Response(f'Error due to {e}', status=status.HTTP_400_BAD_REQUEST)
+            # Catch any other exceptions and log
+            print(f"Unexpected error: {str(e)}")
+            return Response(f'An unexpected error occurred: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)

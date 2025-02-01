@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import "./chatbot.css";
 import { FcGoogle } from "react-icons/fc";
@@ -13,9 +12,11 @@ import { FaYandex } from "react-icons/fa";
 import { SiQwant } from "react-icons/si";
 import { SiEcosia } from "react-icons/si";
 import { useParams } from "react-router-dom";
-import { PulseLoader ,SyncLoader } from "react-spinners";
-
-import { Clipboard } from "flowbite-react";
+import { PulseLoader, SyncLoader } from "react-spinners";
+import useClipboard from "react-use-clipboard";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 
 const Chatbot = ({ chatName }) => {
   const [messages, setMessages] = useState([]);
@@ -23,6 +24,7 @@ const Chatbot = ({ chatName }) => {
   const [loading, setLoading] = useState(false); // State to track loading
   const [currentLoadingIndex, setCurrentLoadingIndex] = useState(null); // Index of the message being processed
   const chatWindowRef = useRef(null); // Reference to the chat window
+  const [isCopied, setCopied] = useClipboard("Text to copy");
 
   useEffect(() => {
     const initialMessages = [
@@ -57,6 +59,54 @@ const Chatbot = ({ chatName }) => {
     setMessages(initialMessages); // Set initial message history
   }, []);
 
+  const copyToClipboard = (link) => {
+    navigator.clipboard.writeText(link).then(() => {
+      toast.success('🎉 Link copied to clipboard! 🚀', {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        style: {
+          background: '#1a1a2e',
+          color: '#fff',
+          borderRadius: '8px',
+          border: '1px solid rgba(79, 150, 255, 0.3)',
+        },
+      });
+    }).catch(() => {
+      toast.error('❌ Failed to copy link');
+    });
+  };
+
+  const renderContent = (content) => {
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    if (typeof content !== 'string') return content;
+    
+    const parts = content.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <span key={i} className="link-container">
+            <a href={part} target="_blank" rel="noopener noreferrer">{part}</a>
+            <button 
+              className="copy-link-btn"
+              onClick={() => copyToClipboard(part)}
+              title="Copy link to clipboard"
+            >
+              <FiClipboard />
+            </button>
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   const sendMessage = async () => {
     if (input.trim() === "") return;
 
@@ -86,13 +136,15 @@ const Chatbot = ({ chatName }) => {
       );
 
       const data = await response.json();
+      console.log("This is Data Response from backend",data['results'])
 
       // Create the support message
       const supportMessage = {
-        text: data.response || "Error While Getting the Response", // Use response from API
+        object: data['results'] || "Error While Getting the Response", // Use response from API
         time: currentTime,
         sender: "support",
       };
+      console.log("This is Support Message",supportMessage)
 
       // Append support response to the message history
       setMessages((prevMessages) => [...prevMessages, supportMessage]);
@@ -119,33 +171,79 @@ const Chatbot = ({ chatName }) => {
       </header>
 
       <div className="chat-window" ref={chatWindowRef}>
-      {messages.map((msg, index) => (
-        msg.sender === "support" ? (
-          <div key={index} className={`chat-message ${msg.sender}`}>
-         
-          <p>{msg.text}</p>
-          <p>Product Search Engine</p>
-          <p>Product Title is:</p>
-          <p>Product Content is:</p>
-          <p>Product Url is:</p>
-          
+        {messages.map((msg, index) =>
+          msg.sender === "support" ? (
+            <div key={index} className={`chat-message ${msg.sender}`}>
+              {msg.object ? (
+                // Display search results if available
+                <div className="search-results">
+                  <h3>Search Results:</h3>
+                  {Array.isArray(msg.object) ? (
+                    msg.object.map((result, resultIndex) => (
+                      <div key={resultIndex} className="search-result">
+                        {result.title && (
+                          <h4 className="result-title">
+                             {result.title}
+                          </h4>
+                        )}
+                        {result.content && (
+                          <p className="result-content"> {result.content}</p>
+                        )}
+                        {result.url && (
+                          <p className="result-url">
+                            Product URL:
+                            <span className="link-container">
+                              <a
+                                href={result.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {result.url}
+                              </a>
+                              <button 
+                                className="copy-link-btn"
+                                onClick={() => copyToClipboard(result.url)}
+                                title="Copy link to clipboard"
+                              >
+                                <FiClipboard />
+                              </button>
+                            </span>
+                          </p>
+                        )}
+                        {result.engines && (
+                          <p className="result-url">
+                            
+                             Result from : {result.engines}
+                            
+                          </p>
+                        )}
 
-          <span className="time">{msg.time}</span>
-        </div>
-        ):(
-          <div key={index} className={`chat-message ${msg.sender}`}>
-    <p>{msg.text}</p>
-    <span className="time">{msg.time}</span>
-  </div>
-        )
-  
-))}
-{/* Show the spinner only when a new message is being processed */}
-{loading && (
-  <div className="loading-spinner">
-    <SyncLoader color="#2a91c4" loading={loading} />
-  </div>
-)}
+                      </div>
+                    ))
+                  ) : (
+                    <p>{msg.object}</p>
+                  )}
+                </div>
+              ) : (
+                // Display regular text message
+                <p>{msg.text}</p>
+              )}
+              <span className="time">{msg.time}</span>
+            </div>
+          ) : (
+            // User message
+            <div key={index} className={`chat-message ${msg.sender}`}>
+              <p>{msg.text}</p>
+              <span className="time">{msg.time}</span>
+            </div>
+          )
+        )}
+        {/* Show the spinner only when a new message is being processed */}
+        {loading && (
+          <div className="loading-spinner">
+            <SyncLoader color="#2a91c4" loading={loading} />
+          </div>
+        )}
       </div>
 
       <div className="chat-input">
@@ -198,6 +296,7 @@ const Chatbot = ({ chatName }) => {
           </span>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

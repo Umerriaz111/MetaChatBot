@@ -31,6 +31,7 @@ function App() {
       <Routes>
       <Route path="/chats/:chat" element={<SidebarandHome />} /> 
        <Route path="/" element={<Home />} />
+       <Route path="/chatbot" element={<Chatbot />} />
       </Routes>
     </BrowserRouter>
     </>
