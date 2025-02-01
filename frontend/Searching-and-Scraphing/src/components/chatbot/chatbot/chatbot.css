@@ -145,42 +145,56 @@ body.sidebar-closed .chatbot-container {
 
 .search-icon {
     display: flex;
-    padding: 8px;
-    justify-content: space-evenly;
-    pointer-events: auto;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    flex-wrap: wrap;
 }
 
 .icon-container {
-    display: inline-flex;
-    /* Ensure icons are properly aligned */
-    padding: 4px;
-    /* Add some spacing around icons */
-    background-color: transparent;
-    /* Base background color */
-    border: 2px solid transparent;
-    /* Base border */
-    transition: background-color 0.3s ease, border-color 0.3s ease;
-    /* Smooth transition */
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .icon-container:hover {
-    background-color: #f9f9f9;
-    /* Light gray background on hover */
-    border-color: #186804;
-    /* Change border color on hover */
+    transform: translateY(-3px) scale(1.05);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.send-button {
-    background-color: transparent;
-    border: none;
-    padding: 10px;
-    border-radius: 50%;
-    cursor: pointer;
+.icon-container.selected {
+    background: rgba(25, 118, 210, 0.1);
+    border-color: #1976d2;
+    box-shadow: 0 0 15px rgba(25, 118, 210, 0.3);
+    animation: pulse 1.5s infinite;
 }
 
-.send-button img {
-    width: 30px;
-    height: 30px;
+.icon-container.selected svg {
+    color: #1976d2;
+    filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.5));
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(25, 118, 210, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0);
+    }
+}
+
+.icon-container:active {
+    transform: scale(0.95);
 }
 
 .time {

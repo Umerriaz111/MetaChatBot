@@ -25,6 +25,31 @@ const Chatbot = ({ chatName }) => {
   const [currentLoadingIndex, setCurrentLoadingIndex] = useState(null); // Index of the message being processed
   const chatWindowRef = useRef(null); // Reference to the chat window
   const [isCopied, setCopied] = useClipboard("Text to copy");
+  const [selectedIcons, setSelectedIcons] = useState(new Set());
+
+  const handleIconClick = (iconName) => {
+    setSelectedIcons(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(iconName)) {
+        newSelection.delete(iconName);
+        toast.info(`${iconName} has been unselected`, {
+          position: "top-right",
+          autoClose: 2000,
+          theme: "colored",
+          icon: "🔴"
+        });
+      } else {
+        newSelection.add(iconName);
+        toast.success(`${iconName} has been selected`, {
+          position: "top-right",
+          autoClose: 2000,
+          theme: "colored",
+          icon: "✨"
+        });
+      }
+      return newSelection;
+    });
+  };
 
   useEffect(() => {
     const initialMessages = [
@@ -164,6 +189,7 @@ const Chatbot = ({ chatName }) => {
   }, [messages]);
 
   return (
+    
     <div className="chatbot-container">
       <header className="chatbot-header">
         <img src="./world.png" alt="Logo" className="logo" />
@@ -260,45 +286,81 @@ const Chatbot = ({ chatName }) => {
           </button>
         </div>
         <div className="search-icon">
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Google') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Google')}
+          >
             <FcGoogle fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('DuckDuckGo') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('DuckDuckGo')}
+          >
             <SiDuckduckgo fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Bing') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Bing')}
+          >
             <BsBing fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Yahoo') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Yahoo')}
+          >
             <TbBrandYahoo fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Wikipedia') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Wikipedia')}
+          >
             <TbBrandWikipedia fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('GitHub') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('GitHub')}
+          >
             <FaGithub fontSize={23} />
             
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Amazon') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Amazon')}
+          >
             <BsAmazon fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('StartPage') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('StartPage')}
+          >
             <SiStartpage fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Yandex') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Yandex')}
+          >
             <FaYandex fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Qwant') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Qwant')}
+          >
             <SiQwant fontSize={23} />
           </span>
-          <span className="icon-container">
+          <span 
+            className={`icon-container ${selectedIcons.has('Ecosia') ? 'selected' : ''}`}
+            onClick={() => handleIconClick('Ecosia')}
+          >
             <SiEcosia fontSize={23} />
           </span>
         </div>
       </div>
       <ToastContainer />
     </div>
+
+
   );
+ 
 };
 
 export default Chatbot;

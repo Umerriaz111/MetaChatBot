@@ -80,7 +80,7 @@ MIDDLEWARE = [
 
 # Or specify the exact allowed origin(s)
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:517",  # React frontend
+    "http://localhost:5173",  # React frontend
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -162,4 +162,3 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
-
