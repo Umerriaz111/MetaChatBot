@@ -10,6 +10,15 @@ from django.contrib.auth.models import User
 from .models import ChatSession, Message
 from .serializers import UserSerializer, ChatSessionSerializer, MessageSerializer
 
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+import openai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # User Views
 class UserList(generics.ListCreateAPIView):
     queryset = User.objects.all()
@@ -60,12 +69,55 @@ class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-## Azam this Method is Working This .Write like this in Langchain . 
-## {
-#     "detail": "Authentication credentials were not provided."
-# }
-# Remove Authentication credentials so far We Can Add that after Testing is Done
-@api_view(['GET'])
+def websearch(query,number_of_items=3,engine='google'):
+    try:
+        search = SearxSearchWrapper(searx_host="http://127.0.0.1:8080", engines=[engine])
+        results = search.results(query, num_results=number_of_items)
+        return results
+    except Exception as e:
+        print(f'Exception in websearch = {str(e)}')
+        return None
+
+def assistant(query,search_results):
+    
+    # Set up OpenAI GPT-4o Mini model
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+
+    # Use ChatOpenAI for GPT-4o Mini
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+    prompt_template = PromptTemplate(
+    input_variables=["query", "search_results"],
+    template="""
+    You are a helpful and ethical assistant that gathers data from different browsers and presents it in a structured manner.
+
+    User Query: {query}
+
+    Below are the search results from different browsers:
+    {search_results}
+
+    Extract the relevant information and present it in the following structured format by replacing <Browser Name> with the provided browser name:
+    - **<Browser Name> Results:**
+    - Title: ...
+    - Snippet: ...
+    - Link: ...
+
+    Ensure the response is well-organized and readable. If the query contains sensitive content (e.g., adult movies, illegal activities), politely refuse to answer and apologize.
+        """
+    )
+
+    chain = LLMChain(llm=llm, prompt=prompt_template)
+    # Check for sensitive content
+    sensitive_keywords = ["adult movies", "illegal", "prohibited", "banned"]
+    if any(keyword in query.lower() for keyword in sensitive_keywords):
+        return "Sorry, I can't help you with this query."
+    
+    response = chain.run(query=query, search_results=search_results)
+    return response
+
+
+
+
+@api_view(['GET','POST'])
 def search(request):
     if request.method == 'GET':
         query = request.GET.get('query')
@@ -107,3 +159,33 @@ def search(request):
             # Catch any other exceptions and log
             print(f"Unexpected error: {str(e)}")
             return Response(f'An unexpected error occurred: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        query = request.GET.get('query')
+        number_of_items = request.GET.get('number_of_items',3)
+        engines = request.GET.get('engines',['google','duckduckgo'])
+        
+        # Data Prep for LLM
+        data_for_llm = ''
+        for engine in engines:
+            single_browser_result = f'''The result from {engine} browser is\n'''
+            results = websearch(query,number_of_items,engine)
+            print(f'results = {results}')
+            if not results:
+                continue
+            
+            # Convert results (which is a list of dictionaries) to a string
+            for index,result in enumerate(results):
+                title = result.get('title', 'N/A')
+                link = result.get('link', 'N/A')
+                snippet = result.get('snippet', 'N/A')
+                result_str = f"Result Number {index+1} = Title: {title} Link: {link} Snippet: {snippet}"
+                single_browser_result += result_str
+
+            data_for_llm += single_browser_result
+
+        if not data_for_llm:
+            return Response("Sorry, I couldn't find any relevant search results for your query." )
+        
+        # Giving data to LLM
+        llm_response = assistant(query,data_for_llm)
+        return Response(llm_response, status=status.HTTP_200_OK)
