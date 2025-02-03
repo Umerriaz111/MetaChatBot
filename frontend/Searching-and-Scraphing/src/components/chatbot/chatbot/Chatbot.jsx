@@ -152,11 +152,12 @@ const Chatbot = ({ chatName }) => {
     setCurrentLoadingIndex(messages.length); // Set the current message index to show the spinner
 
     // Fetch data from API
+    // Fetch data from API
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/search/?query=${encodeURIComponent(input)}`,
+        `http://127.0.0.1:8000/api/search/?query=${encodeURIComponent(input)}&engines=${Array.from(selectedIcons).join(',')}`,
         {
-          method: "GET",
+          method: "POST",
         }
       );
 
@@ -215,16 +216,16 @@ const Chatbot = ({ chatName }) => {
                         {result.content && (
                           <p className="result-content"> {result.content}</p>
                         )}
-                        {result.url && (
+                        {result.link && (
                           <p className="result-url">
                             Product URL:
                             <span className="link-container">
                               <a
-                                href={result.url}
+                                href={result.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                {result.url}
+                                {result.link}
                               </a>
                               <button 
                                 className="copy-link-btn"
@@ -236,10 +237,10 @@ const Chatbot = ({ chatName }) => {
                             </span>
                           </p>
                         )}
-                        {result.engines && (
+                        {result.browser && (
                           <p className="result-url">
                             
-                             Result from : {result.engines}
+                             Result from : {result.browser}
                             
                           </p>
                         )}

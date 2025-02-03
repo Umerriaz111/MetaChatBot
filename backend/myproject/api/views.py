@@ -16,6 +16,7 @@ from langchain.prompts import PromptTemplate
 import openai
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -86,33 +87,53 @@ def assistant(query,search_results):
     # Use ChatOpenAI for GPT-4o Mini
     llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
     prompt_template = PromptTemplate(
-    input_variables=["query", "search_results"],
-    template="""
-    You are a helpful and ethical assistant that gathers data from different browsers and presents it in a structured manner.
+        input_variables=["query", "search_results"],
+        template="""
+        You are a helpful and ethical assistant that gathers data from different browsers and presents it in a structured manner.
+        Do not respond to queries which include sensitive content such as adult movies, illegal content, prohibited content, or banned content. You should say sorry I can't help you with that in that case.
+        User Query: {query}
 
-    User Query: {query}
+        Below are the search results from different browsers:
+        {search_results}
 
-    Below are the search results from different browsers:
-    {search_results}
+        Extract the relevant information and return a JSON array where each item contains:
+        - `browser`: Name of the browser source
+        - `title`: Title of the search result
+        - `snippet/content`: A short summary of the search result
+        - `link`: The URL of the search result
 
-    Extract the relevant information and present it in the following structured format by replacing <Browser Name> with the provided browser name:
-    - **<Browser Name> Results:**
-    - Title: ...
-    - Snippet: ...
-    - Link: ...
+        Ensure the response is valid JSON and follows this format exactly where it should be a list of dictionaries. Do not add anything additional to it like ``` or json or ``` :
 
-    Ensure the response is well-organized and readable. If the query contains sensitive content (e.g., adult movies, illegal activities), politely refuse to answer and apologize.
+        
+        [
+            {{"browser": "<Browser Name>", "title": "<Title>", "content": "<Snippet>", "link": "<URL>"}},
+            {{"browser": "<Browser Name>", "title": "<Title>", "content": "<Snippet>", "link": "<URL>"}}
+        ]
+        
+
+        If no relevant results are found, return an empty JSON array `[]`.
         """
     )
 
     chain = LLMChain(llm=llm, prompt=prompt_template)
+
     # Check for sensitive content
     sensitive_keywords = ["adult movies", "illegal", "prohibited", "banned"]
     if any(keyword in query.lower() for keyword in sensitive_keywords):
-        return "Sorry, I can't help you with this query."
-    
+        return []
+
     response = chain.run(query=query, search_results=search_results)
-    return response
+    print(f"Response from GPT-4o Mini: {response}")
+
+    # Ensure response is a valid JSON list of dictionaries
+    try:
+        structured_response = json.loads(response)
+        if isinstance(structured_response, list):
+            return structured_response
+        else:
+            return []  # Return empty list if unexpected format
+    except json.JSONDecodeError:
+        return []  # Return empty list if parsing fails
 
 
 
@@ -162,30 +183,30 @@ def search(request):
     else:
         query = request.GET.get('query')
         number_of_items = request.GET.get('number_of_items',3)
-        engines = request.GET.get('engines',['google','duckduckgo'])
+        engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo').split(',')]
+        print(f"Received query: {query}")
+        print(f"Received number_of_items: {number_of_items}")
+        print(f"Received engines: {engines}")
         
         # Data Prep for LLM
-        data_for_llm = ''
+        data_for_llm = []
         for engine in engines:
-            single_browser_result = f'''The result from {engine} browser is\n'''
-            results = websearch(query,number_of_items,engine)
-            print(f'results = {results}')
+            results = websearch(query, number_of_items, engine)
             if not results:
                 continue
             
-            # Convert results (which is a list of dictionaries) to a string
-            for index,result in enumerate(results):
-                title = result.get('title', 'N/A')
-                link = result.get('link', 'N/A')
-                snippet = result.get('snippet', 'N/A')
-                result_str = f"Result Number {index+1} = Title: {title} Link: {link} Snippet: {snippet}"
-                single_browser_result += result_str
-
-            data_for_llm += single_browser_result
+            for result in results:
+                data_for_llm.append({
+                    "browser": engine,
+                    "title": result.get('title', 'N/A'),
+                    "link": result.get('link', 'N/A'),
+                    "snippet": result.get('snippet', 'N/A')
+                })
 
         if not data_for_llm:
-            return Response("Sorry, I couldn't find any relevant search results for your query." )
-        
-        # Giving data to LLM
-        llm_response = assistant(query,data_for_llm)
-        return Response(llm_response, status=status.HTTP_200_OK)
+            return Response({"message": "Sorry, no relevant search results found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Convert results into a JSON string to pass to GPT
+        llm_response = assistant(query, json.dumps(data_for_llm))
+
+        return Response({"results": llm_response}, status=status.HTTP_200_OK)
