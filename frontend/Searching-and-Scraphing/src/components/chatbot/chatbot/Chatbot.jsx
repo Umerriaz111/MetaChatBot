@@ -198,7 +198,7 @@ const Chatbot = ({ chatName }) => {
       </header>
 
       <div className="chat-window" ref={chatWindowRef}>
-        {messages.map((msg, index) =>
+        {/* {messages.map((msg, index) =>
           msg.sender === "support" ? (
             <div key={index} className={`chat-message ${msg.sender}`}>
               {msg.object ? (
@@ -206,6 +206,8 @@ const Chatbot = ({ chatName }) => {
                 <div className="search-results">
                   <h3>Search Results:</h3>
                   {Array.isArray(msg.object) ? (
+
+                    
                     msg.object.map((result, resultIndex) => (
                       <div key={resultIndex} className="search-result">
                         {result.title && (
@@ -264,7 +266,73 @@ const Chatbot = ({ chatName }) => {
               <span className="time">{msg.time}</span>
             </div>
           )
-        )}
+        )} */}
+           {messages.map((msg, index) => (
+        msg.sender === "support" ? (
+          <div key={index} className={`chat-message ${msg.sender}`}>
+            {msg.object ? (
+              <div className="search-results">
+                {Array.isArray(msg.object) ? (
+                  msg.object.length === 0 ? (
+                    <p className="no-results">Cannot help you regarding this Query</p>
+                  ) : (
+                    <>
+                      <h3>Search Results:</h3>
+                      {msg.object.map((result, resultIndex) => (
+                        <div key={resultIndex} className="search-result">
+                          {result.title && (
+                            <h4 className="result-title">{result.title}</h4>
+                          )}
+                          {result.content && (
+                            <p className="result-content">{result.content}</p>
+                          )}
+                          {result.link && (
+                            <p className="result-url">
+                              Product URL:
+                              <span className="link-container">
+                                <a
+                                  href={result.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="result-link"
+                                >
+                                  {result.link}
+                                </a>
+                                <button
+                                  className="copy-link-btn"
+                                  onClick={() => copyToClipboard(result.link)}
+                                  title="Copy link to clipboard"
+                                >
+                                  <FiClipboard size={14} />
+                                </button>
+                              </span>
+                            </p>
+                          )}
+                          {result.browser && (
+                            <p className="result-source">
+                              Result from: {result.browser}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )
+                ) : (
+                  <p className="object-fallback">{msg.object}</p>
+                )}
+              </div>
+            ) : (
+              <p>{msg.text}</p>
+            )}
+            <span className="time">{msg.time}</span>
+          </div>
+        ) : (
+          <div key={index} className={`chat-message ${msg.sender}`}>
+            <p>{msg.text}</p>
+            <span className="time">{msg.time}</span>
+          </div>
+        )
+      ))}
         {/* Show the spinner only when a new message is being processed */}
         {loading && (
           <div className="loading-spinner">
