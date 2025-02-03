@@ -356,6 +356,9 @@ const Chatbot = ({ chatName }) => {
         </div>
       </div>
       <ToastContainer />
+      {
+  console.log("This is selectedIcons",selectedIcons)
+}
     </div>
 
 
