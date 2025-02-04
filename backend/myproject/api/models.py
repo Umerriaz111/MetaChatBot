@@ -1,5 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+
+# Django's default user model already includes id, username, email, and password fields
+class User(AbstractUser):
+
+    def __str__(self):
+        return self.username
 
 class ChatSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

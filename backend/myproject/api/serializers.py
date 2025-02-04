@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import ChatSession, Message
+from .models import User,ChatSession, Message
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,23 +7,28 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 class ChatSessionSerializer(serializers.ModelSerializer):
+    # This field will now expect a user ID from the frontend.
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
     class Meta:
         model = ChatSession
-        fields = ['id', 'session_name', 'created_at']  # Don't include 'user' here
+        fields = ['id', 'user', 'session_name', 'created_at']
 
     def create(self, validated_data):
-        # Automatically set the 'user' field to the currently authenticated user
-        validated_data['user'] = self.context['request'].user
+        # No longer automatically setting the user. The provided user ID is used.
         return super().create(validated_data)
 
 class MessageSerializer(serializers.ModelSerializer):
+    # Add a session field that expects a primary key
+    session = serializers.PrimaryKeyRelatedField(queryset=ChatSession.objects.all())
+
     class Meta:
         model = Message
-        fields = ['id', 'user_message', 'created_at']  # Exclude 'session' and 'chatbot_response'
+        # Now include the session field in the serializer output and input.
+        fields = ['id', 'user_message', 'session', 'created_at', 'chatbot_response']
+        read_only_fields = ['chatbot_response', 'created_at']
 
     def create(self, validated_data):
-        # Automatically set the 'session' field based on the URL parameter
-        validated_data['session'] = self.context['session']
-        # Generate the chatbot response (replace this with your chatbot logic)
+        # Generate the chatbot response (customize as needed)
         validated_data['chatbot_response'] = "This is a sample response."
         return super().create(validated_data)

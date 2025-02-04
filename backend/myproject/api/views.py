@@ -6,8 +6,7 @@ from rest_framework import status
 from langchain_community.utilities import SearxSearchWrapper
 
 from rest_framework import generics, permissions
-from django.contrib.auth.models import User
-from .models import ChatSession, Message
+from .models import User,ChatSession, Message
 from .serializers import UserSerializer, ChatSessionSerializer, MessageSerializer
 
 from langchain.chat_models import ChatOpenAI
@@ -17,10 +16,10 @@ import openai
 import os
 from dotenv import load_dotenv
 import json
+from rest_framework.permissions import AllowAny
 
 load_dotenv()
 
-# User Views
 class UserList(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -29,46 +28,65 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+# ---------------------
 # ChatSession Views
+# ---------------------
 class ChatSessionList(generics.ListCreateAPIView):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny] # [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        # The 'user' field is automatically set in the serializer
-        serializer.save()
+        # Get user ID from the request data and assign it to the user field
+        user_id = self.request.data.get('user', None)
+        if user_id:
+            user = User.objects.get(id=user_id)
+            serializer.save(user=user)
 
     def get_queryset(self):
-        # Only return chat sessions for the currently authenticated user
-        return ChatSession.objects.filter(user=self.request.user)
+        # Get the user ID from query parameters
+        user_id = self.request.query_params.get('user', None)
+
+        if user_id:
+            return ChatSession.objects.filter(user_id=user_id)
+        else:
+            return 'Need to provide user ID'
 
 class ChatSessionDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny] #[permissions.IsAuthenticated]
 
+# ---------------------
 # Message Views
+# ---------------------
 class MessageList(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]  # or AllowAny if you prefer
 
     def get_queryset(self):
-        # Filter messages by the session ID in the URL
-        session_id = self.kwargs['session_id']
+        # Filter messages by the session_id from the URL.
+        session_id = self.kwargs.get('session_id')
         return Message.objects.filter(session_id=session_id)
 
-    def get_serializer_context(self):
-        # Pass the session object to the serializer context
-        context = super().get_serializer_context()
-        session_id = self.kwargs['session_id']
-        context['session'] = ChatSession.objects.get(id=session_id)
-        return context
+    def perform_create(self, serializer):
+        # Get the session_id from the URL
+        session_id_from_url = self.kwargs.get('session_id')
+        # Get the session passed in the payload (if provided)
+        session_from_payload = serializer.validated_data.get('session')
+        if session_from_payload and int(session_id_from_url) != session_from_payload.id:
+            raise serializers.ValidationError("Session ID in URL does not match session ID in payload.")
+        # If the client did not provide a session (or to force using URL's session), you can override it:
+        try:
+            session = ChatSession.objects.get(id=session_id_from_url)
+        except ChatSession.DoesNotExist:
+            raise serializers.ValidationError("Chat session not found.")
+        serializer.save(session=session)
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny] # [permissions.IsAuthenticated]
 
 def websearch(query,number_of_items=3,engine='google'):
     try:
