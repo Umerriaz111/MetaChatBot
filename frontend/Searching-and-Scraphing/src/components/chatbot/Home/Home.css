@@ -54,8 +54,21 @@
   margin-left: var(--sidebar-width);
 }
 
-body.sidebar-closed .home-container {
+/* Sidebar collapsed state */
+.sidebar-collapsed .home-container {
   margin-left: var(--sidebar-collapsed-width);
+}
+
+/* Basic responsive adjustments */
+@media (max-width: 768px) {
+  .home-container {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+  
+  .sidebar-collapsed .home-container {
+    margin-left: 0;
+  }
 }
 
 /* Modern Scrollbar */
@@ -411,16 +424,6 @@ body.sidebar-closed .home-container {
 }
 
 @media (max-width: 768px) {
-  .home-container {
-    padding: 1rem;
-    margin-left: 0;
-    width: 100%;
-  }
-
-  body.sidebar-closed .home-container {
-    margin-left: 0;
-  }
-
   .hero-section {
     padding: 3rem 1.5rem;
     margin-top: 3rem;

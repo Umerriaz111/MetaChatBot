@@ -70,6 +70,14 @@ const Sidebar = ({ onNewChat, onSelectChat }) => {
       showToast(`Renamed chat: ${oldName} → ${editedName}`);
     }
   };
+  const onNewChat2 = () => {
+    navigate('/chats/newchat');
+    const newChat = "umer Created new Chat";
+    setChats(prevChats => ({
+      ...prevChats,  // Spread the existing chats object
+      today: [...prevChats.today, newChat] // Add the new chat to the 'today' array
+    }));
+  };
 
   const renderChatItem = (chat, index, section) => {
     const isEditing = editingChat === `${section}-${index}`;
@@ -128,7 +136,7 @@ const Sidebar = ({ onNewChat, onSelectChat }) => {
     <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
       <div className="sidebar-header">
         <div className="logo-container">
-          {isSidebarOpen && <span className="logo-text">AI Chat</span>}
+          {isSidebarOpen && <div className="logo-text"><img  style={{ width: '80px', height: '80px'}} src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="" /></div>}
         </div>
         <button 
           className="sidebar-toggle-btn" 
@@ -141,7 +149,7 @@ const Sidebar = ({ onNewChat, onSelectChat }) => {
 
       <button className="new-chat-btn" onClick={onNewChat}>
         <FiPlus className="btn-icon" />
-        {isSidebarOpen && <span>New Chat</span>}
+        {isSidebarOpen && <span onClick={onNewChat2}> New Chat</span>}
       </button>
 
       <div className="sidebar-scroll">

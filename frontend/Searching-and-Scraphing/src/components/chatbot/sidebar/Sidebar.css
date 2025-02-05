@@ -2,7 +2,7 @@
 .sidebar {
     width: 260px;
     height: 100vh;
-    background: #1a1a2e;
+    background:rgba(255, 255, 255, 0.682);
     color: #fff;
     position: fixed;
     top: 0;
@@ -64,7 +64,7 @@
 .sidebar-toggle-btn {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(79, 150, 255, 0.7);
     cursor: pointer;
     padding: 8px;
     font-size: 20px;
@@ -76,7 +76,7 @@
 }
 
 .sidebar-toggle-btn:hover {
-    color: #4f96ff;
+    color: rgb(79, 150, 255);
     transform: scale(1.1);
 }
 
@@ -150,6 +150,7 @@
     text-overflow: ellipsis;
     min-width: 0;
     flex: 1;
+    color: black;
 }
 
 /* Chat Actions */
@@ -169,7 +170,7 @@
     padding: 4px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(2, 2, 2, 0.797);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -192,7 +193,7 @@
     margin: 16px 0 8px;
     font-size: 0.75rem;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.903);
     letter-spacing: 1px;
 }
 
@@ -212,7 +213,7 @@
     border: 1px solid rgba(79, 150, 255, 0.3);
     border-radius: 4px;
     padding: 8px 12px;
-    color: #fff;
+    color: #0a0909;
     font-size: 0.9rem;
     outline: none;
 }

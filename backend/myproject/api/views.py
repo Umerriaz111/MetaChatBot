@@ -182,7 +182,7 @@ def search(request):
             return Response(f'An unexpected error occurred: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         query = request.GET.get('query')
-        number_of_items = request.GET.get('number_of_items',3)
+        number_of_items = int(request.GET.get('number_of_items',10))
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo').split(',')]
         print(f"Received query: {query}")
         print(f"Received number_of_items: {number_of_items}")

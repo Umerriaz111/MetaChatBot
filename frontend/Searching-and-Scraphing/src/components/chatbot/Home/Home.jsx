@@ -31,9 +31,7 @@ const Home = () => {
 
   return (
     <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <button className="toggle-sidebar" onClick={toggleSidebar}>
-        <FaBars />
-      </button>
+   
       <Sidebar isCollapsed={isSidebarCollapsed} />
       <div className="home-container">
         <div className="hero-section">

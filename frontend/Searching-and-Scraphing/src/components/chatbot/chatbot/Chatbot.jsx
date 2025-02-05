@@ -12,7 +12,7 @@ import { FaYandex } from "react-icons/fa";
 import { SiQwant } from "react-icons/si";
 import { SiEcosia } from "react-icons/si";
 import { useParams } from "react-router-dom";
-import { PulseLoader, SyncLoader } from "react-spinners";
+import { PulseLoader, SyncLoader, BarLoader } from "react-spinners";
 import useClipboard from "react-use-clipboard";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -23,11 +23,58 @@ const Chatbot = ({ chatName }) => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false); // State to track loading
   const [currentLoadingIndex, setCurrentLoadingIndex] = useState(null); // Index of the message being processed
+  const [isChangingChat, setIsChangingChat] = useState(true); // New state for chat switching
   const chatWindowRef = useRef(null); // Reference to the chat window
   const [isCopied, setCopied] = useClipboard("Text to copy");
   const [selectedIcons, setSelectedIcons] = useState(new Set());
+  const [numResults, setNumResults] = useState(5);
+
+  useEffect(() => {
+    setIsChangingChat(true); // Start loading when chat changes
+    
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      if (chatName !== "newchat") {
+        const initialMessages = [
+          {
+            text: "Hi How are you?",
+            time: "09:00 AM",
+            sender: "user",
+          },
+          {
+            text: "Hello, how can I assist you today?",
+            time: "09:00 AM",
+            sender: "support",
+          },
+          {
+            text: "I have a question about my order status.",
+            time: "09:02 AM",
+            sender: "user",
+          },
+          {
+            text: "Can you please provide your order number?",
+            time: "09:03 AM",
+            sender: "support",
+          },
+          { text: "My order number is 123456.", time: "09:05 AM", sender: "user" },
+          {
+            text: "Thank you for that. Let me check the status for you.",
+            time: "09:06 AM",
+            sender: "support",
+          },
+        ];
+        setMessages(initialMessages); // Set initial message history only if not a new chat
+      } else {
+        setMessages([]); // Clear messages for new chat
+      }
+      setIsChangingChat(false); // Stop loading after content is set
+    }, 2000); // 2 seconds delay
+
+    return () => clearTimeout(timer);
+  }, [chatName]);
 
   const handleIconClick = (iconName) => {
+    toast.dismiss();
     setSelectedIcons(prev => {
       const newSelection = new Set(prev);
       if (newSelection.has(iconName)) {
@@ -52,37 +99,10 @@ const Chatbot = ({ chatName }) => {
   };
 
   useEffect(() => {
-    const initialMessages = [
-      {
-        text: "Hi How are you?",
-        time: "09:00 AM",
-        sender: "user",
-      },
-
-      {
-        text: "Hello, how can I assist you today?",
-        time: "09:00 AM",
-        sender: "support",
-      },
-      {
-        text: "I have a question about my order status.",
-        time: "09:02 AM",
-        sender: "user",
-      },
-      {
-        text: "Can you please provide your order number?",
-        time: "09:03 AM",
-        sender: "support",
-      },
-      { text: "My order number is 123456.", time: "09:05 AM", sender: "user" },
-      {
-        text: "Thank you for that. Let me check the status for you.",
-        time: "09:06 AM",
-        sender: "support",
-      },
-    ];
-    setMessages(initialMessages); // Set initial message history
-  }, []);
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const copyToClipboard = (link) => {
     navigator.clipboard.writeText(link).then(() => {
@@ -147,15 +167,25 @@ const Chatbot = ({ chatName }) => {
     // Clear the input box
     setInput("");
     
+    // Check if any icons are selected
+    if (selectedIcons.size === 0) {
+      const noIconMessage = {
+        text: "Please select at least one search engine icon before searching.",
+        time: currentTime,
+        sender: "support",
+      };
+      setMessages((prevMessages) => [...prevMessages, noIconMessage]);
+      return;
+    }
+    
     // Set loading state to true and track the index of the current message
     setLoading(true);
     setCurrentLoadingIndex(messages.length); // Set the current message index to show the spinner
 
     // Fetch data from API
-    // Fetch data from API
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/search/?query=${encodeURIComponent(input)}&engines=${Array.from(selectedIcons).join(',')}`,
+        `http://127.0.0.1:8000/api/search/?query=${encodeURIComponent(input)}&number_of_items=${numResults}&engines=${Array.from(selectedIcons).join(',')}`,
         {
           method: "POST",
         }
@@ -182,257 +212,209 @@ const Chatbot = ({ chatName }) => {
     }
   };
 
-  // Scroll to the bottom of the chat window whenever messages change
-  useEffect(() => {
-    if (chatWindowRef.current) {
-      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
-    }
-  }, [messages]);
-
   return (
-    
     <div className="chatbot-container">
-      <header className="chatbot-header">
-        <img src="./world.png" alt="Logo" className="logo" />
-        <h1>Searching and Scraping Bot</h1>
-      </header>
+      {isChangingChat ? (
+        <div className="loader-container">
+          <BarLoader color="#2a91c4"  loading={true} width={150} />
+        </div>
+      ) : (
+        <>
+          <header className="chatbot-header">
+            <img src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
+            <h1>Searching and Scraping Bot</h1>
+          </header>
 
-      <div className="chat-window" ref={chatWindowRef}>
-        {/* {messages.map((msg, index) =>
-          msg.sender === "support" ? (
-            <div key={index} className={`chat-message ${msg.sender}`}>
-              {msg.object ? (
-                // Display search results if available
-                <div className="search-results">
-                  <h3>Search Results:</h3>
-                  {Array.isArray(msg.object) ? (
-
-                    
-                    msg.object.map((result, resultIndex) => (
-                      <div key={resultIndex} className="search-result">
-                        {result.title && (
-                          <h4 className="result-title">
-                             {result.title}
-                          </h4>
-                        )}
-                        {result.content && (
-                          <p className="result-content"> {result.content}</p>
-                        )}
-                        {result.link && (
-                          <p className="result-url">
-                            Product URL:
-                            <span className="link-container">
-                              <a
-                                href={result.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {result.link}
-                              </a>
-                              <button 
-                                className="copy-link-btn"
-                                onClick={() => copyToClipboard(result.url)}
-                                title="Copy link to clipboard"
-                              >
-                                <FiClipboard />
-                              </button>
-                            </span>
-                          </p>
-                        )}
-                        {result.browser && (
-                          <p className="result-url">
-                            
-                             Result from : {result.browser}
-                            
-                          </p>
-                        )}
-
-                      </div>
-                    ))
+          <div className="chat-window" ref={chatWindowRef}>
+            {messages.map((msg, index) => (
+              msg.sender === "support" ? (
+                <div key={index} className={`chat-message ${msg.sender}`}>
+                  {msg.object ? (
+                    <div className="search-results">
+                      {Array.isArray(msg.object) ? (
+                        msg.object.length === 0 ? (
+                          <p className="no-results">Unfortunately, I am not in a position to offer assistance with this specific query at this time.</p>
+                        ) : (
+                          <>
+                          
+                            {msg.object.map((result, resultIndex) => (
+                              <div key={resultIndex} className="search-result">
+                                {result.title && (
+                                  <h4 className="result-title">{result.title}</h4>
+                                )}
+                                {result.content && (
+                                  <p className="result-content">{result.content}</p>
+                                )}
+                                {result.link && (
+                                  <p className="result-url">
+                                    Product URL:
+                                    <span className="link-container">
+                                      <a
+                                        href={result.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="result-link"
+                                      >
+                                        {result.link}
+                                      </a>
+                                      <button
+                                        className="copy-link-btn"
+                                        onClick={() => copyToClipboard(result.link)}
+                                        title="Copy link to clipboard"
+                                      >
+                                        <FiClipboard size={14} />
+                                      </button>
+                                    </span>
+                                  </p>
+                                )}
+                                {result.browser && (
+                                  <p className="result-source">
+                                    Result from: {result.browser}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </>
+                        )
+                      ) : (
+                        <p className="object-fallback">{msg.object}</p>
+                      )}
+                    </div>
                   ) : (
-                    <p>{msg.object}</p>
+                    <p>{msg.text}</p>
                   )}
+                  <span className="time">{msg.time}</span>
                 </div>
               ) : (
-                // Display regular text message
-                <p>{msg.text}</p>
-              )}
-              <span className="time">{msg.time}</span>
-            </div>
-          ) : (
-            // User message
-            <div key={index} className={`chat-message ${msg.sender}`}>
-              <p>{msg.text}</p>
-              <span className="time">{msg.time}</span>
-            </div>
-          )
-        )} */}
-           {messages.map((msg, index) => (
-        msg.sender === "support" ? (
-          <div key={index} className={`chat-message ${msg.sender}`}>
-            {msg.object ? (
-              <div className="search-results">
-                {Array.isArray(msg.object) ? (
-                  msg.object.length === 0 ? (
-                    <p className="no-results">Cannot help you regarding this Query</p>
-                  ) : (
-                    <>
-                      <h3>Search Results:</h3>
-                      {msg.object.map((result, resultIndex) => (
-                        <div key={resultIndex} className="search-result">
-                          {result.title && (
-                            <h4 className="result-title">{result.title}</h4>
-                          )}
-                          {result.content && (
-                            <p className="result-content">{result.content}</p>
-                          )}
-                          {result.link && (
-                            <p className="result-url">
-                              Product URL:
-                              <span className="link-container">
-                                <a
-                                  href={result.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="result-link"
-                                >
-                                  {result.link}
-                                </a>
-                                <button
-                                  className="copy-link-btn"
-                                  onClick={() => copyToClipboard(result.link)}
-                                  title="Copy link to clipboard"
-                                >
-                                  <FiClipboard size={14} />
-                                </button>
-                              </span>
-                            </p>
-                          )}
-                          {result.browser && (
-                            <p className="result-source">
-                              Result from: {result.browser}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </>
-                  )
-                ) : (
-                  <p className="object-fallback">{msg.object}</p>
-                )}
+                <div key={index} className={`chat-message ${msg.sender}`}>
+                  <p>{msg.text}</p>
+                  <span className="time">{msg.time}</span>
+                </div>
+              )
+            ))}
+            {/* Show the spinner only when a new message is being processed */}
+            {loading && (
+              <div className="loading-spinner">
+                <SyncLoader color="#2a91c4" loading={loading} />
               </div>
-            ) : (
-              <p>{msg.text}</p>
             )}
-            <span className="time">{msg.time}</span>
           </div>
-        ) : (
-          <div key={index} className={`chat-message ${msg.sender}`}>
-            <p>{msg.text}</p>
-            <span className="time">{msg.time}</span>
-          </div>
-        )
-      ))}
-        {/* Show the spinner only when a new message is being processed */}
-        {loading && (
-          <div className="loading-spinner">
-            <SyncLoader color="#2a91c4" loading={loading} />
-          </div>
-        )}
-      </div>
 
-      <div className="chat-input">
-        <div className="chat-input_message">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            className="message-box"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button className="send-button" onClick={sendMessage}>
-            <img src="./paper-plane.png" alt="Send" />
-          </button>
-        </div>
-        <div className="search-icon">
-          <span 
-            className={`icon-container ${selectedIcons.has('Google') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Google')}
-          >
-            <FcGoogle fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('DuckDuckGo') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('DuckDuckGo')}
-          >
-            <SiDuckduckgo fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Bing') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Bing')}
-          >
-            <BsBing fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Yahoo') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Yahoo')}
-          >
-            <TbBrandYahoo fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Wikipedia') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Wikipedia')}
-          >
-            <TbBrandWikipedia fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('GitHub') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('GitHub')}
-          >
-            <FaGithub fontSize={23} />
-            
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Amazon') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Amazon')}
-          >
-            <BsAmazon fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('StartPage') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('StartPage')}
-          >
-            <SiStartpage fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Yandex') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Yandex')}
-          >
-            <FaYandex fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Qwant') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Qwant')}
-          >
-            <SiQwant fontSize={23} />
-          </span>
-          <span 
-            className={`icon-container ${selectedIcons.has('Ecosia') ? 'selected' : ''}`}
-            onClick={() => handleIconClick('Ecosia')}
-          >
-            <SiEcosia fontSize={23} />
-          </span>
-        </div>
-      </div>
-      <ToastContainer />
-      {
-  console.log("This is selectedIcons",selectedIcons)
-}
+          <div className="chat-input">
+            <div className="chat-input_message">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                className="message-box"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+              <div className="number-input-container">
+                <input 
+                  type="number" 
+                  placeholder="Results"
+                  className="number-input"
+                  value={numResults}
+                  min="1"
+
+                  onChange={(e) => {
+                    const value = Math.max(1, Number(e.target.value));
+                    setNumResults(value);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    marginRight: '10px',
+                    width: '80px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.3s ease',
+                  }}
+                />
+              </div>
+              <button className="send-button" onClick={sendMessage}>
+                <img src="./paper-plane.png" alt="Send" />
+              </button>
+            </div>
+            <div className="search-icon">
+              <span 
+                className={`icon-container ${selectedIcons.has('Google') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Google')}
+              >
+                <FcGoogle fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('DuckDuckGo') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('DuckDuckGo')}
+              >
+                <SiDuckduckgo fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Bing') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Bing')}
+              >
+                <BsBing fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Yahoo') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Yahoo')}
+              >
+                <TbBrandYahoo fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Wikipedia') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Wikipedia')}
+              >
+                <TbBrandWikipedia fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('GitHub') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('GitHub')}
+              >
+                <FaGithub fontSize={23} />
+                
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Amazon') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Amazon')}
+              >
+                <BsAmazon fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('StartPage') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('StartPage')}
+              >
+                <SiStartpage fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Yandex') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Yandex')}
+              >
+                <FaYandex fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Qwant') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Qwant')}
+              >
+                <SiQwant fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Ecosia') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Ecosia')}
+              >
+                <SiEcosia fontSize={23} />
+              </span>
+            </div>
+          </div>
+          <ToastContainer />
+          {
+            console.log("This is selectedIcons",selectedIcons)
+          }
+        </>
+      )}
     </div>
-
-
   );
- 
 };
 
 export default Chatbot;
