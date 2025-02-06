@@ -7,9 +7,9 @@ import { TbBrandYahoo } from "react-icons/tb";
 import { TbBrandWikipedia } from "react-icons/tb";
 import { FaGithub } from "react-icons/fa";
 import { BsAmazon } from "react-icons/bs";
-import { SiStartpage } from "react-icons/si";
+import { SiMojeek } from "react-icons/si";
 import { FaYandex } from "react-icons/fa";
-import { SiQwant } from "react-icons/si";
+
 import { SiEcosia } from "react-icons/si";
 import { useParams } from "react-router-dom";
 import { PulseLoader, SyncLoader, BarLoader } from "react-spinners";
@@ -27,7 +27,7 @@ const Chatbot = ({ chatName }) => {
   const chatWindowRef = useRef(null); // Reference to the chat window
   const [isCopied, setCopied] = useClipboard("Text to copy");
   const [selectedIcons, setSelectedIcons] = useState(new Set());
-  const [numResults, setNumResults] = useState(5);
+  const [numResults, setNumResults] = useState(10);
 
   useEffect(() => {
     setIsChangingChat(true); // Start loading when chat changes
@@ -168,15 +168,16 @@ const Chatbot = ({ chatName }) => {
     setInput("");
     
     // Check if any icons are selected
-    if (selectedIcons.size === 0) {
-      const noIconMessage = {
-        text: "Please select at least one search engine icon before searching.",
-        time: currentTime,
-        sender: "support",
-      };
-      setMessages((prevMessages) => [...prevMessages, noIconMessage]);
-      return;
-    }
+    // if (selectedIcons.size === 0) {
+    //   const noIconMessage = {
+    //     text: "Please select at least one search engine icon before searching.",
+    //     time: currentTime,
+    //     sender: "support",
+    //   };
+    //   setMessages((prevMessages) => [...prevMessages, noIconMessage]);
+    //   return;
+    // }
+   
     
     // Set loading state to true and track the index of the current message
     setLoading(true);
@@ -209,6 +210,13 @@ const Chatbot = ({ chatName }) => {
     } finally {
       setLoading(false);
       setCurrentLoadingIndex(null); // Reset the current loading index once the response is received
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -302,12 +310,12 @@ const Chatbot = ({ chatName }) => {
 
           <div className="chat-input">
             <div className="chat-input_message">
-              <input
-                type="text"
-                placeholder="Type a message..."
-                className="message-box"
+              <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="message-box"
               />
               <div className="number-input-container">
                 <input 
@@ -381,29 +389,25 @@ const Chatbot = ({ chatName }) => {
               >
                 <BsAmazon fontSize={23} />
               </span>
-              <span 
-                className={`icon-container ${selectedIcons.has('StartPage') ? 'selected' : ''}`}
-                onClick={() => handleIconClick('StartPage')}
-              >
-                <SiStartpage fontSize={23} />
-              </span>
+              
               <span 
                 className={`icon-container ${selectedIcons.has('Yandex') ? 'selected' : ''}`}
                 onClick={() => handleIconClick('Yandex')}
               >
                 <FaYandex fontSize={23} />
               </span>
-              <span 
-                className={`icon-container ${selectedIcons.has('Qwant') ? 'selected' : ''}`}
-                onClick={() => handleIconClick('Qwant')}
-              >
-                <SiQwant fontSize={23} />
-              </span>
+              
               <span 
                 className={`icon-container ${selectedIcons.has('Ecosia') ? 'selected' : ''}`}
                 onClick={() => handleIconClick('Ecosia')}
               >
                 <SiEcosia fontSize={23} />
+              </span>
+              <span 
+                className={`icon-container ${selectedIcons.has('Mojeek') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Mojeek')}
+              >
+                <SiMojeek fontSize={23} />
               </span>
             </div>
           </div>
