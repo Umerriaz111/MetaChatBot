@@ -17,6 +17,8 @@ import openai
 import os
 from dotenv import load_dotenv
 import json
+from langchain_community.tools.searx_search.tool import SearxSearchResults
+from langchain_community.utilities.searx_search import SearxSearchWrapper
 
 load_dotenv()
 
@@ -70,14 +72,41 @@ class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-def websearch(query,number_of_items=3,engine='google'):
+def websearch(query,engine='google',pageno=1):
     try:
-        search = SearxSearchWrapper(searx_host="http://127.0.0.1:8080", engines=[engine])
-        results = search.results(query, num_results=number_of_items)
+        wrapper = SearxSearchWrapper(searx_host="http://127.0.0.1:8080")
+        tool = SearxSearchResults(
+                wrapper=wrapper,
+                kwargs={"engines": [engine],
+                    'pageno':pageno})
+        
+        results = tool.run(query)
+        print('results = ',results)
         return results
     except Exception as e:
         print(f'Exception in websearch = {str(e)}')
         return None
+    
+def assistant2(query):
+    # Set up OpenAI GPT-4o Mini model
+    os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+
+    # Use ChatOpenAI for GPT-4o Mini
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+    prompt_template = PromptTemplate(
+        input_variables=["query"],
+        template="""
+        You are a helpful and ethical assistant whose task is to check user queries and verify if its an ethical and non dangerous query. If the query is unethical or dangerous then respond with 'safe' else respond with 'not safe'
+        Queries which include sensitive content such as adult movies, illegal content, prohibited content, or banned content is considered not unethical. You should reply with 'not safe' in this case.
+        User Query: {query} """
+    )
+
+    chain = LLMChain(llm=llm, prompt=prompt_template)
+
+    response = chain.run(query=query)
+    print(f"Response from GPT-4o Mini: {response}")
+    return response
+
 
 def assistant(query,search_results):
     
@@ -210,3 +239,51 @@ def search(request):
         llm_response = assistant(query, json.dumps(data_for_llm))
 
         return Response({"results": llm_response}, status=status.HTTP_200_OK)
+    
+
+@api_view(['GET','POST'])
+def search2(request):
+    query = request.GET.get('query')
+    number_of_items = int(request.GET.get('number_of_items','-1'))
+    engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
+    print(f"Received query: {query}")
+    print(f"Received number_of_items: {number_of_items}")
+    print(f"Received engines: {engines}")
+
+    if not query or query=='':
+        return Response({"message": "Either Query not sent or Query is empty"})
+    
+    if not engines or engines==['']:
+        engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
+
+    print(f"Received query: {query}")
+    print(f"Received number_of_items: {number_of_items}")
+    print(f"Received engines: {engines}")
+
+    # Convert results into a JSON string to pass to GPT
+    llm_response = assistant2(query)
+
+    if llm_response=='not safe':
+        return Response({"message": "Query not safe"})
+    
+    final_result = []
+
+    for engine in engines:
+        pageno = 1
+        while True:
+            response = websearch(query, engine, pageno)
+            
+            if response == [{"Result": "No good Search Result was found"}]:
+                break
+            
+            final_result.extend(item["Result"] for item in response if "Result" in item)
+            
+            if number_of_items != -1 and len(final_result) >= number_of_items:
+                final_result = final_result[:number_of_items]
+                return Response({"results": final_result})
+            
+            pageno += 1
+
+
+    # ans = websearch(query=query)
+    return Response({'results':final_result})
