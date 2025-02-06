@@ -269,7 +269,9 @@ def search2(request):
     llm_response = assistant2(query)
 
     if llm_response=='not safe':
-        return Response([])
+        return Response({
+  "results": []
+})
     
     final_result = []
 
