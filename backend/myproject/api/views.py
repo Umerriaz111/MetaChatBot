@@ -74,15 +74,20 @@ class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
 
 def websearch(query,engine='google',pageno=1):
     try:
-        wrapper = SearxSearchWrapper(searx_host="http://127.0.0.1:8080")
-        tool = SearxSearchResults(
-                wrapper=wrapper,
-                kwargs={"engines": [engine],
-                    'pageno':pageno})
+        searxng_url = 'http://127.0.0.1:8080/search'
+ 
+        params = {
+            'q': query,
+            'format': 'json',
+            'pageno':pageno,
+            'engines':engine
+        }
         
-        results = tool.run(query)
-        print('results = ',results)
+        response = requests.get(searxng_url, params=params)
+        response.raise_for_status()
+        results = response.json()
         return results
+
     except Exception as e:
         print(f'Exception in websearch = {str(e)}')
         return None
@@ -244,7 +249,7 @@ def search(request):
 @api_view(['GET','POST'])
 def search2(request):
     query = request.GET.get('query')
-    number_of_items = int(request.GET.get('number_of_items','-1'))
+    number_of_items = int(request.GET.get('number_of_items',0))
     engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
     print(f"Received query: {query}")
     print(f"Received number_of_items: {number_of_items}")
@@ -264,26 +269,28 @@ def search2(request):
     llm_response = assistant2(query)
 
     if llm_response=='not safe':
-        return Response({"message": "Query not safe"})
+        return Response([])
     
     final_result = []
 
     for engine in engines:
         pageno = 1
-        while True:
+        items_for_each_engine = number_of_items
+        result_of_each_engine = []
+        while len(result_of_each_engine) < items_for_each_engine and pageno<=20:
             response = websearch(query, engine, pageno)
-            
-            if response == [{"Result": "No good Search Result was found"}]:
+            response = response['results']
+            result_of_each_engine.extend(response)
+            # print(f"Result from {engine}: {response}")
+            # Check if we have reached the desired number of items
+            if response==[] or len(result_of_each_engine) >= items_for_each_engine:
+                result_of_each_engine = result_of_each_engine[:items_for_each_engine]
+                final_result.extend(result_of_each_engine)
+                print(f"\n\n len of Result from {engine}: {len(result_of_each_engine)}")
                 break
-            
-            final_result.extend(item["Result"] for item in response if "Result" in item)
-            
-            if number_of_items != -1 and len(final_result) >= number_of_items:
-                final_result = final_result[:number_of_items]
-                return Response({"results": final_result})
-            
+
             pageno += 1
 
 
     # ans = websearch(query=query)
-    return Response({'results':final_result})
+    return Response({'results':final_result}, status=status.HTTP_200_OK)
