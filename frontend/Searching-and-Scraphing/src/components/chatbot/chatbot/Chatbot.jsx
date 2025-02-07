@@ -27,7 +27,7 @@ const Chatbot = ({ chatName }) => {
   const chatWindowRef = useRef(null); // Reference to the chat window
   const [isCopied, setCopied] = useClipboard("Text to copy");
   const [selectedIcons, setSelectedIcons] = useState(new Set());
-  const [numResults, setNumResults] = useState(10);
+  const [numResults, setNumResults] = useState(0);
 
   useEffect(() => {
     setIsChangingChat(true); // Start loading when chat changes
@@ -186,9 +186,9 @@ const Chatbot = ({ chatName }) => {
     // Fetch data from API
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/search/?query=${encodeURIComponent(input)}&number_of_items=${numResults}&engines=${Array.from(selectedIcons).join(',')}`,
+        `http://127.0.0.1:8000/api/search2/?query=${encodeURIComponent(input)}&number_of_items=${numResults}&engines=${Array.from(selectedIcons).join(',')}`,
         {
-          method: "POST",
+          method: "GET",
         }
       );
 
@@ -253,17 +253,17 @@ const Chatbot = ({ chatName }) => {
                                 {result.content && (
                                   <p className="result-content">{result.content}</p>
                                 )}
-                                {result.link && (
+                                {result.url && (
                                   <p className="result-url">
                                     Product URL:
                                     <span className="link-container">
                                       <a
-                                        href={result.link}
+                                        href={result.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="result-link"
                                       >
-                                        {result.link}
+                                        {result.url}
                                       </a>
                                       <button
                                         className="copy-link-btn"
@@ -275,9 +275,9 @@ const Chatbot = ({ chatName }) => {
                                     </span>
                                   </p>
                                 )}
-                                {result.browser && (
+                                {result.engine && (
                                   <p className="result-source">
-                                    Result from: {result.browser}
+                                    Result from: {result.engine}
                                   </p>
                                 )}
                               </div>
@@ -323,10 +323,10 @@ const Chatbot = ({ chatName }) => {
                   placeholder="Results"
                   className="number-input"
                   value={numResults}
-                  min="1"
+                  min="0"
 
                   onChange={(e) => {
-                    const value = Math.max(1, Number(e.target.value));
+                    const value = Math.max(0, Number(e.target.value));
                     setNumResults(value);
                   }}
                   style={{
