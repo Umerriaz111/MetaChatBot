@@ -249,50 +249,49 @@ def search(request):
 @api_view(['GET','POST'])
 def search2(request):
     query = request.GET.get('query')
-    number_of_items = int(request.GET.get('number_of_items',0))
+    number_of_items = int(request.GET.get('number_of_items', 0))
     engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
     print(f"Received query: {query}")
     print(f"Received number_of_items: {number_of_items}")
     print(f"Received engines: {engines}")
 
-    if not query or query=='':
+    if not query or query == '':
         return Response({"message": "Either Query not sent or Query is empty"})
     
-    if not engines or engines==['']:
+    if not engines or engines == ['']:
         engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
 
     print(f"Received query: {query}")
     print(f"Received number_of_items: {number_of_items}")
     print(f"Received engines: {engines}")
 
-    # Convert results into a JSON string to pass to GPT
     llm_response = assistant2(query)
 
-    if llm_response=='not safe':
-        return Response({
-  "results": []
-})
+    if llm_response == 'not safe':
+        return Response({"results": []})
     
     final_result = []
 
     for engine in engines:
         pageno = 1
-        items_for_each_engine = number_of_items
         result_of_each_engine = []
-        while len(result_of_each_engine) < items_for_each_engine and pageno<=20:
+        
+        while pageno <= 20:
             response = websearch(query, engine, pageno)
             response = response['results']
             result_of_each_engine.extend(response)
-            # print(f"Result from {engine}: {response}")
-            # Check if we have reached the desired number of items
-            if response==[] or len(result_of_each_engine) >= items_for_each_engine:
-                result_of_each_engine = result_of_each_engine[:items_for_each_engine]
-                final_result.extend(result_of_each_engine)
-                print(f"\n\n len of Result from {engine}: {len(result_of_each_engine)}")
+            
+            if response == []:
+                break  # Stop if there are no more results
+            
+            if number_of_items > 0 and len(result_of_each_engine) >= number_of_items:
+                result_of_each_engine = result_of_each_engine[:number_of_items]
                 break
-
+            
             pageno += 1
+        
+        final_result.extend(result_of_each_engine)
+        print(f"\n\n len of Result from {engine}: {len(result_of_each_engine)}")
 
+    return Response({'results': final_result}, status=status.HTTP_200_OK)
 
-    # ans = websearch(query=query)
-    return Response({'results':final_result}, status=status.HTTP_200_OK)
