@@ -9,7 +9,7 @@ import { FaGithub } from "react-icons/fa";
 import { BsAmazon } from "react-icons/bs";
 import { SiMojeek } from "react-icons/si";
 import { FaYandex } from "react-icons/fa";
-
+import { BsThreeDots } from "react-icons/bs";
 import { SiEcosia } from "react-icons/si";
 import { useParams } from "react-router-dom";
 import { PulseLoader, SyncLoader, BarLoader } from "react-spinners";
@@ -28,6 +28,9 @@ const Chatbot = ({ chatName }) => {
   const [isCopied, setCopied] = useClipboard("Text to copy");
   const [selectedIcons, setSelectedIcons] = useState(new Set());
   const [numResults, setNumResults] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  //Searching or Scraphing Options is Saved Here
+  const [selectedOption, setSelectedOption] = useState('Searching');
 
   useEffect(() => {
     setIsChangingChat(true); // Start loading when chat changes
@@ -220,6 +223,16 @@ const Chatbot = ({ chatName }) => {
     }
   };
 
+  const handleOptionSelect = (option) => {
+    setSelectedOption(option);
+    setMenuOpen(false);
+    toast.success(`${option} mode selected`, {
+      position: "top-right",
+      autoClose: 2000,
+      theme: "colored",
+    });
+  };
+
   return (
     <div className="chatbot-container">
       {isChangingChat ? (
@@ -231,6 +244,28 @@ const Chatbot = ({ chatName }) => {
           <header className="chatbot-header">
             <img src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
             <h1>Searching and Scraping Bot</h1>
+            <div className="menu-container">
+              <BsThreeDots
+                className="menu-icon" 
+                onClick={() => setMenuOpen(!menuOpen)} 
+              />
+              {menuOpen && (
+                <div className="menu-dropdown">
+                  <div 
+                    className={`menu-item ${selectedOption === 'Searching' ? 'selected' : ''}`}
+                    onClick={() => handleOptionSelect('Searching')}
+                  >
+                    Searching
+                  </div>
+                  <div 
+                    className={`menu-item ${selectedOption === 'Scraping' ? 'selected' : ''}`}
+                    onClick={() => handleOptionSelect('Scraping')}
+                  >
+                    Scraping
+                  </div>
+                </div>
+              )}
+            </div>
           </header>
 
           <div className="chat-window" ref={chatWindowRef}>
@@ -309,15 +344,9 @@ const Chatbot = ({ chatName }) => {
           </div>
 
           <div className="chat-input">
+            
             <div className="chat-input_message">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
-                className="message-box"
-              />
-              <div className="number-input-container">
+            <div className="number-input-container">
                 <input 
                   type="number" 
                   placeholder="Results"
@@ -341,6 +370,14 @@ const Chatbot = ({ chatName }) => {
                   }}
                 />
               </div>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="message-box"
+              />
+             
               <button className="send-button" onClick={sendMessage}>
                 <img src="./paper-plane.png" alt="Send" />
               </button>
@@ -413,12 +450,15 @@ const Chatbot = ({ chatName }) => {
           </div>
           <ToastContainer />
           {
-            console.log("This is selectedIcons",selectedIcons)
+            console.log("This is selectedOption",selectedOption)
           }
         </>
       )}
     </div>
   );
+  
+    
+  
 };
 
 export default Chatbot;

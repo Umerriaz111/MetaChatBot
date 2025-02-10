@@ -136,7 +136,7 @@ const Sidebar = ({ onNewChat, onSelectChat }) => {
     <div className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
       <div className="sidebar-header">
         <div className="logo-container">
-          {isSidebarOpen && <div className="logo-text"><img  style={{ width: '80px', height: '80px'}} src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="" /></div>}
+          {isSidebarOpen && <div className="logo-text"><img  style={{ width: '80px', height: '80px'}} src="./chats/2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="" /></div>}
         </div>
         <button 
           className="sidebar-toggle-btn" 
