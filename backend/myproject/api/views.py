@@ -35,7 +35,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 class ChatSessionList(generics.ListCreateAPIView):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny] # permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         # The 'user' field is automatically set in the serializer
@@ -48,12 +48,12 @@ class ChatSessionList(generics.ListCreateAPIView):
 class ChatSessionDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = ChatSession.objects.all()
     serializer_class = ChatSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny] # permission_classes = [permissions.IsAuthenticated]
 
 # Message Views
 class MessageList(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny] # permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         # Filter messages by the session ID in the URL
