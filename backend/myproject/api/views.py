@@ -9,6 +9,7 @@ from rest_framework import generics, permissions
 from django.contrib.auth.models import User
 from .models import ChatSession, Message
 from .serializers import UserSerializer, ChatSessionSerializer, MessageSerializer
+from rest_framework.exceptions import ValidationError
 
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
@@ -42,8 +43,10 @@ class ChatSessionList(generics.ListCreateAPIView):
         serializer.save()
 
     def get_queryset(self):
-        # Only return chat sessions for the currently authenticated user
-        return ChatSession.objects.filter(user=self.request.user)
+        user_id = self.request.data.get('user_id')  # Get user_id from request body
+        if not user_id:
+            raise ValidationError({"error": "User ID is required."})  # Return an error if user_id is missing
+        return ChatSession.objects.filter(user_id=user_id)  # Filter by user_id
 
 class ChatSessionDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = ChatSession.objects.all()

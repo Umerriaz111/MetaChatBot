@@ -8,14 +8,22 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 class ChatSessionSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(write_only=True, required=False)  # Add user_id field
+
     class Meta:
         model = ChatSession
-        fields = ['id', 'session_name', 'created_at']  # Don't include 'user' here
+        fields = ['id', 'session_name', 'created_at', 'user_id']  # Include user_id
 
     def create(self, validated_data):
-        # Automatically set the 'user' field to the currently authenticated user
-        validated_data['user'] = self.context['request'].user
+        # Check if user_id is provided; otherwise, use the authenticated user
+        user_id = validated_data.pop('user_id', None)
+        print(f'user_id = {user_id}')
+        if not user_id:
+            user_id = self.context['request'].user.id
+
+        validated_data['user'] = User.objects.get(id=user_id)  # Set the user field
         return super().create(validated_data)
+
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
