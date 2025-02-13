@@ -43,7 +43,7 @@ class ChatSessionList(generics.ListCreateAPIView):
         serializer.save()
 
     def get_queryset(self):
-        user_id = self.request.data.get('user_id')  # Get user_id from request body
+        user_id = self.request.query_params.get('user_id')  # Get user_id from request body
         if not user_id:
             raise ValidationError({"error": "User ID is required."})  # Return an error if user_id is missing
         return ChatSession.objects.filter(user_id=user_id)  # Filter by user_id
