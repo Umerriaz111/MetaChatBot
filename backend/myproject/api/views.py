@@ -65,6 +65,16 @@ class ChatSessionDetail(generics.RetrieveUpdateDestroyAPIView):
         session.delete()  # Deletes the session
         return Response({"message": "Chat session deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
+    def update(self, request, *args, **kwargs):
+        session = self.get_object()
+        # Check if the name is being updated
+        session_name = request.data.get('session_name', None)
+        if session_name:
+            session.session_name = session_name
+            session.save()
+            return Response({"message": "Chat session renamed successfully."}, status=status.HTTP_200_OK)
+        return Response({"error": "Session name field is required."}, status=status.HTTP_400_BAD_REQUEST)
+
 # Message Views
 class MessageList(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
