@@ -53,6 +53,18 @@ class ChatSessionDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ChatSessionSerializer
     permission_classes = [permissions.AllowAny] # permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        session_id = self.kwargs.get('pk')  # 'pk' is the session ID passed in the URL
+        try:
+            return ChatSession.objects.get(id=session_id)
+        except ChatSession.DoesNotExist:
+            raise ValidationError({"error": "Chat session not found."})
+
+    def destroy(self, request, *args, **kwargs):
+        session = self.get_object()
+        session.delete()  # Deletes the session
+        return Response({"message": "Chat session deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
 # Message Views
 class MessageList(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
