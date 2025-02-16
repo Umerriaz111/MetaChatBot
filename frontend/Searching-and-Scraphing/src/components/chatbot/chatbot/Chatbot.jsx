@@ -18,7 +18,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 
-const Chatbot = ({ chatName }) => {
+const Chatbot = ({ chatName,id }) => {
+  console.log("This is Id and it is Called")
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false); // State to track loading
