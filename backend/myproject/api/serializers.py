@@ -28,7 +28,7 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'user_message', 'created_at']  # Exclude 'session' and 'chatbot_response'
+        fields = ['id', 'user_message', 'chatbot_response', 'created_at']  # Exclude 'session' and 'chatbot_response'
 
     def create(self, validated_data):
         # Automatically set the 'session' field based on the URL parameter
