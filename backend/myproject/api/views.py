@@ -276,19 +276,21 @@ def search2(request):
     query = request.GET.get('query')
     number_of_items = int(request.GET.get('number_of_items', 0))
     engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
+    query_type = request.GET.get('query_type', 'searching')  # Default to 'searching' if not specified
+    
     print(f"Received query: {query}")
     print(f"Received number_of_items: {number_of_items}")
     print(f"Received engines: {engines}")
+    print(f"Received query_type: {query_type}")
+
+    if query_type not in ['searching', 'scraping']:
+        return Response({"message": "Invalid query_type. Must be either 'searching' or 'scraping'"}, status=status.HTTP_400_BAD_REQUEST)
 
     if not query or query == '':
         return Response({"message": "Either Query not sent or Query is empty"})
     
     if not engines or engines == ['']:
         engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
-
-    print(f"Received query: {query}")
-    print(f"Received number_of_items: {number_of_items}")
-    print(f"Received engines: {engines}")
 
     llm_response = assistant2(query)
 
@@ -318,5 +320,7 @@ def search2(request):
         final_result.extend(result_of_each_engine)
         print(f"\n\n len of Result from {engine}: {len(result_of_each_engine)}")
 
-    return Response({'results': final_result}, status=status.HTTP_200_OK)
-
+    return Response({
+        'results': final_result,
+        'query_type': query_type
+    }, status=status.HTTP_200_OK)

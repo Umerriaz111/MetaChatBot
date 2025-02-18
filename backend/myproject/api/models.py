@@ -14,6 +14,7 @@ class Message(models.Model):
     user_message = models.TextField()
     chatbot_response = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    message_type = models.CharField(max_length=20, choices=[('searching', 'Searching'), ('scraping', 'Scraping')], default='searching')
 
     def __str__(self):
         return f"Message {self.id} in Session {self.session.id}"
