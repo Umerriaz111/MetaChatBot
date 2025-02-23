@@ -91,6 +91,61 @@ class MessageList(generics.ListCreateAPIView):
         session_id = self.kwargs['session_id']
         context['session'] = ChatSession.objects.get(id=session_id)
         return context
+    
+    def post(self, request, *args, **kwargs):
+        query = request.GET.get('query')
+        number_of_items = int(request.GET.get('number_of_items', 0))
+        engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
+        # query_type = request.GET.get('query_type', 'searching')  # Default to 'searching' if not specified
+        message_type = request.GET.get('message_type', 'searching')  # Default to 'searching' if not specified
+        
+        if message_type not in ['searching', 'scraping']:
+            return Response({"message": "Invalid message_type. Must be either 'searching' or 'scraping'"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not query or query == '':
+            return Response({"message": "Either Query not sent or Query is empty"})
+        
+        if not engines or engines == ['']:
+            engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
+
+        if message_type == 'searching':
+
+            llm_response = assistant2(query)
+
+            # if llm_response == 'not safe':
+            #     return Response({"results": []})
+
+            # Extract session from URL
+            session_id = self.kwargs['session_id']
+            session = ChatSession.objects.get(id=session_id)
+
+            # Extract user message and generate chatbot response
+            user_message = query
+            if llm_response != 'not safe':
+                chatbot_response = search_results(user_message, number_of_items, engines)
+            else:
+                chatbot_response = 'Search results are not safe. Please try again.'
+
+            # Save message to DB
+            message = Message.objects.create(
+                session=session,
+                user_message=user_message,
+                chatbot_response=chatbot_response,
+                message_type=message_type
+            )
+
+            # Return response
+            return Response({
+                "id": message.id,
+                "user_message": message.user_message,
+                "chatbot_response": message.chatbot_response,
+                "created_at": message.created_at,
+                "message_type": message.message_type
+            }, status=status.HTTP_201_CREATED)
+        
+        else:
+            return Response({"message": f"You selected scraping as your message_type. and your query was {query}"}, status=status.HTTP_200_OK)
+
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Message.objects.all()
@@ -269,7 +324,32 @@ def search(request):
         llm_response = assistant(query, json.dumps(data_for_llm))
 
         return Response({"results": llm_response}, status=status.HTTP_200_OK)
-    
+
+def search_results(query, number_of_items, engines):
+    final_result = []
+
+    for engine in engines:
+        pageno = 1
+        result_of_each_engine = []
+        
+        while pageno <= 20:
+            response = websearch(query, engine, pageno)
+            response = response['results']
+            result_of_each_engine.extend(response)
+            
+            if response == []:
+                break  # Stop if there are no more results
+            
+            if number_of_items > 0 and len(result_of_each_engine) >= number_of_items:
+                result_of_each_engine = result_of_each_engine[:number_of_items]
+                break
+            
+            pageno += 1
+        
+        final_result.extend(result_of_each_engine)
+
+    return final_result
+
 
 @api_view(['GET','POST'])
 def search2(request):
