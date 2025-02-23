@@ -23,10 +23,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   });
   const [sessions, setSessions] = useState([]);
   const [activeselectedChat, setactiveSelectedChat] = useState();
-  console.log(
-    "this is what I am getting for selected chat ",
-    activeselectedChat
-  );
+
   useEffect(() => {
     const fetchSessions = async (user_id) => {
       try {
@@ -121,7 +118,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
         throw new Error("Failed to delete the chat session");
       }
 
-      const chatName = chats[section][index];
+      const chatName = chats[section][index].name;
 
       // Remove the deleted chat from state
       setChats((prev) => ({
@@ -164,12 +161,15 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
                 i === index ? { ...chat, name: editedName } : chat
               ),
             };
+
             return updatedChats;
           });
 
+
+
           setEditingChat(null);
           setEditedName("");
-          showToast(`Renamed chat successfully!`);
+          showToast(`Renamed chat from ${chats[section][index].name} -> ${editedName}`, "success");
         } else {
           showToast(`Failed to rename chat.`, "error");
         }
@@ -185,7 +185,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
         user_id: user_id,
         session_name: session_name,
       });
-      console.log("Response :", response.data);
       return response.data;
     } catch (error) {
       console.error("Error creating session:", error);
@@ -193,16 +192,36 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
     }
   };
 
-  const CreateNewChat = () => {
-    navigate("/chats/newchat");
-    let Response = CreateNewChatAPIcall(5, "Call from API");
-    const newChat = Response.session_name;
-    setChats((prevChats) => ({
-      ...prevChats, // Spread the existing chats object
-      today: [...prevChats.today, newChat], // Add the new chat to the 'today' array
-    }));
+  const CreateNewChat = async () => {
+    console.log("I am Called Umer");
+  
+    try {
+      let Response = await CreateNewChatAPIcall(5, "Call from API");
+  
+      if (!Response || !Response.session_name) {
+        console.error("API call failed or returned invalid data:", Response);
+        return;
+      }
+  
+      const newChat = Response.session_name;
+      const newChatId=Response.id
+  
+      setChats((prevChats) => ({
+        ...prevChats,
+        today: [...prevChats.today, { name: newChat, id: newChatId }], // Add the new chat
+      }));
+  
+      console.log("Chat added successfully:", newChat);
+  
+      // Wait for state update before navigating (optional delay)
+      setTimeout(() => {
+        navigate("/chats/newchat");
+      }, 100); // Small delay to ensure state update
+  
+    } catch (error) {
+      console.error("Error in CreateNewChat:", error);
+    }
   };
-
   const renderChatItem = (chat, index, section, id) => {
     const isEditing = editingChat === `${section}-${index}`;
 
@@ -267,7 +286,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
             <div className="logo-text">
               <img
                 style={{ width: "80px", height: "80px" }}
-                src="./chats/2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg"
+                src="../chats/2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg"
                 alt=""
               />
             </div>
@@ -294,21 +313,21 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
       <div className="sidebar-scroll">
         {isSidebarOpen && (
           <>
-            <div className="sidebar-section">
-              {chats.today.length > 0 && <h3>Today</h3>}
-              <ul className="chat-list">
-                {chats.today.map((chat, index) => (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      SelectedChat(chat.name, chat.id);
-                    }}
-                  >
-                    {renderChatItem(chat.name, index, "today", chat.id)}
-                  </div>
-                ))}
-              </ul>
-            </div>
+           <div className="sidebar-section">
+  {chats?.today?.length > 0 && <h3>Today</h3>}
+  <ul className="chat-list">
+    {chats?.today?.map((chat, index) => (
+      <div
+        key={index}
+        onClick={() => {
+          SelectedChat(chat?.name, chat?.id);
+        }}
+      >
+        {renderChatItem(chat?.name, index, "today", chat?.id)}
+      </div>
+    ))}
+  </ul>
+</div>
 
             <div className="sidebar-section">
               {chats.yesterday.length > 0 && <h3>Yesterday</h3>}
