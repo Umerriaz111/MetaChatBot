@@ -18,6 +18,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 
+const BASE_URL = "http://127.0.0.1:8000";
+
 const Chatbot = ({ chatName,id }) => {
  
   const [messages, setMessages] = useState([]);
@@ -30,52 +32,49 @@ const Chatbot = ({ chatName,id }) => {
   const [selectedIcons, setSelectedIcons] = useState(new Set());
   const [numResults, setNumResults] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  //Searching or Scraphing Options is Saved Here
-  const [selectedOption, setSelectedOption] = useState('Searching');
+  
+  const [selectedOption, setSelectedOption] = useState('searching');
 
   useEffect(() => {
     setIsChangingChat(true); // Start loading when chat changes
+    console.log("Current Session ID:", id); // Debug log
     
-    // Simulate loading time
     const timer = setTimeout(() => {
-      if (chatName !== "newchat") {
-        const initialMessages = [
-          {
-            text: "Hi How are you?",
-            time: "09:00 AM",
-            sender: "user",
-          },
-          {
-            text: "Hello, how can I assist you today?",
-            time: "09:00 AM",
-            sender: "support",
-          },
-          {
-            text: "I have a question about my order status.",
-            time: "09:02 AM",
-            sender: "user",
-          },
-          {
-            text: "Can you please provide your order number?",
-            time: "09:03 AM",
-            sender: "support",
-          },
-          { text: "My order number is 123456.", time: "09:05 AM", sender: "user" },
-          {
-            text: "Thank you for that. Let me check the status for you.",
-            time: "09:06 AM",
-            sender: "support",
-          },
-        ];
-        setMessages(initialMessages); // Set initial message history only if not a new chat
+      if (chatName !== "newchat" && id) { // Only proceed if we have an ID
+        async function getSessionMessages(sessionId) {
+          const url = `${BASE_URL}/api/sessions/${sessionId}/messages/`;
+      
+          try {
+            const response = await fetch(url, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+      
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+      
+            const result = await response.json();
+            console.log("Messages for session", sessionId, ":", result);
+            setMessages(result); // Set the messages from the API response
+            return result;
+          } catch (error) {
+            console.error("Error fetching session messages:", error);
+            return null;
+          }
+        }
+        
+        getSessionMessages(id);
       } else {
         setMessages([]); // Clear messages for new chat
       }
-      setIsChangingChat(false); // Stop loading after content is set
-    }, 2000); // 2 seconds delay
+      setIsChangingChat(false);
+    }, 2000);
 
     return () => clearTimeout(timer);
-  }, [chatName]);
+  }, [chatName, id]); // Add id to dependency array
 
   const handleIconClick = (iconName) => {
     toast.dismiss();
@@ -157,6 +156,14 @@ const Chatbot = ({ chatName,id }) => {
   };
 
   const sendMessage = async () => {
+    if (!id) {
+      toast.error('No active session. Please create a new chat.', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
     if (input.trim() === "") return;
 
     const currentTime = new Date().toLocaleTimeString([], {
@@ -164,56 +171,69 @@ const Chatbot = ({ chatName,id }) => {
       minute: "2-digit",
     });
 
-    // Add user's message
-    const userMessage = { text: input, time: currentTime, sender: "user" };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
-
-    // Clear the input box
+    // Store message text and clear input
+    const messageText = input;
     setInput("");
-    
-    // Check if any icons are selected
-    // if (selectedIcons.size === 0) {
-    //   const noIconMessage = {
-    //     text: "Please select at least one search engine icon before searching.",
-    //     time: currentTime,
-    //     sender: "support",
-    //   };
-    //   setMessages((prevMessages) => [...prevMessages, noIconMessage]);
-    //   return;
-    // }
-   
-    
-    // Set loading state to true and track the index of the current message
-    setLoading(true);
-    setCurrentLoadingIndex(messages.length); // Set the current message index to show the spinner
 
-    // Fetch data from API
+    // Add temporary user message immediately
+    const tempUserMessage = {
+      text: messageText,
+      time: currentTime,
+      sender: "user"
+    };
+    setMessages(prev => [...prev, tempUserMessage]);
+    
+    setLoading(true);
+
     try {
+      const queryParams = new URLSearchParams({
+        query: messageText,
+        number_of_items: numResults || 2,
+        engines: Array.from(selectedIcons).join(',') ,
+        message_type: selectedOption
+      });
+
       const response = await fetch(
-        `http://127.0.0.1:8000/api/search2/?query=${encodeURIComponent(input)}&number_of_items=${numResults}&engines=${Array.from(selectedIcons).join(',')}`,
+        `${BASE_URL}/api/sessions/${id}/messages/?${queryParams}`,
         {
-          method: "GET",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          }
         }
       );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
       const data = await response.json();
-      console.log("This is Data Response from backend",data['results'])
+      console.log("API Response:", data);
 
-      // Create the support message
-      const supportMessage = {
-        object: data['results'] || "Error While Getting the Response", // Use response from API
-        time: currentTime,
-        sender: "support",
-      };
-      console.log("This is Support Message",supportMessage)
+      // Replace temporary message with actual response
+      setMessages(prev => {
+        const messagesWithoutTemp = prev.slice(0, -1); // Remove temporary message
+        return [
+          ...messagesWithoutTemp,
+          {
+            user_message: data.user_message,
+            chatbot_response: data.chatbot_response,
+            created_at: data.created_at,
+            message_type: data.message_type
+          }
+        ];
+      });
 
-      // Append support response to the message history
-      setMessages((prevMessages) => [...prevMessages, supportMessage]);
     } catch (error) {
-      console.error("Error calling the API:", error);
+      console.error("Error:", error);
+      const errorMessage = {
+        text: "Error While Getting the Response",
+        time: currentTime,
+        sender: "support"
+      };
+      setMessages(prev => [...prev.slice(0, -1), errorMessage]); // Remove temp message and add error
     } finally {
       setLoading(false);
-      setCurrentLoadingIndex(null); // Reset the current loading index once the response is received
     }
   };
 
@@ -232,6 +252,65 @@ const Chatbot = ({ chatName,id }) => {
       autoClose: 2000,
       theme: "colored",
     });
+  };
+
+  const handleNumResultsChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove leading zeros
+    value = value.replace(/^0+/, '');
+    
+    // If empty, set to 0
+    if (value === '') {
+      value = '0';
+    }
+    
+    // Convert to number and ensure it's within bounds (0-100)
+    const numValue = Math.min(Math.max(parseInt(value) || 0, 0), 100);
+    
+    setNumResults(numValue.toString());
+  };
+
+  // First, add this helper function to parse the chatbot response
+  const parseSearchResults = (response) => {
+    try {
+      // If response is already a string, try to parse it
+      if (typeof response === 'string') {
+        // Try to parse as JSON first
+        try {
+          const parsed = JSON.parse(response);
+          return parsed;
+        } catch (e) {
+          // If direct JSON parse fails, try to extract multiple results from string
+          const results = [];
+          
+          // Match URL, title, content and engine patterns
+          const matches = response.matchAll(/['"](url|title|content|engine)['"]:\s*['"](.*?)['"]/g);
+          let currentResult = {};
+          
+          for (const match of matches) {
+            const [_, key, value] = match;
+            
+            if (key === 'url' && Object.keys(currentResult).length > 0) {
+              results.push(currentResult);
+              currentResult = {};
+            }
+            
+            currentResult[key] = value;
+          }
+          
+          if (Object.keys(currentResult).length > 0) {
+            results.push(currentResult);
+          }
+
+          return results.length > 0 ? results : response;
+        }
+      }
+      return response;
+    } catch (error) {
+      console.error('Error parsing search results:', error);
+      return response;
+    }
   };
 
   return (
@@ -253,14 +332,14 @@ const Chatbot = ({ chatName,id }) => {
               {menuOpen && (
                 <div className="menu-dropdown">
                   <div 
-                    className={`menu-item ${selectedOption === 'Searching' ? 'selected' : ''}`}
-                    onClick={() => handleOptionSelect('Searching')}
+                    className={`menu-item ${selectedOption === 'searching' ? 'selected' : ''}`}
+                    onClick={() => handleOptionSelect('searching')}
                   >
                     Searching
                   </div>
                   <div 
-                    className={`menu-item ${selectedOption === 'Scraping' ? 'selected' : ''}`}
-                    onClick={() => handleOptionSelect('Scraping')}
+                    className={`menu-item ${selectedOption === 'scraping' ? 'selected' : ''}`}
+                    onClick={() => handleOptionSelect('scraping')}
                   >
                     Scraping
                   </div>
@@ -270,8 +349,77 @@ const Chatbot = ({ chatName,id }) => {
           </header>
 
           <div className="chat-window" ref={chatWindowRef}>
-            {messages.map((msg, index) => (
-              msg.sender === "support" ? (
+            {messages.map((msg, index) => {
+              // Handle messages from the database
+              if (msg.user_message && msg.chatbot_response) {
+                const parsedResponse = parseSearchResults(msg.chatbot_response);
+                
+                return (
+                  <React.Fragment key={index}>
+                    {/* User message */}
+                    <div className="chat-message user">
+                      <p>{msg.user_message}</p>
+                      <span className="time">
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Chatbot response */}
+                    <div className="chat-message support">
+                      <div className="search-results">
+                        {Array.isArray(parsedResponse) ? (
+                          parsedResponse.map((result, resultIndex) => (
+                            <div key={resultIndex} className="search-result">
+                              <div className="result-header">
+                                <h4 className="result-title">
+                                  {result.title || 'Title'}
+                                </h4>
+                              </div>
+                              <div className="result-content">
+                                {result.content && <p>{result.content}</p>}
+                                {result.url && (
+                                  <p className="result-url">
+                                    URL: 
+                                    <span className="link-container">
+                                      <a href={result.url} target="_blank" rel="noopener noreferrer">
+                                        {result.url}
+                                      </a>
+                                      <button 
+                                        className="copy-link-btn"
+                                        onClick={() => copyToClipboard(result.url)}
+                                        title="Copy link to clipboard"
+                                      >
+                                        <FiClipboard />
+                                      </button>
+                                    </span>
+                                  </p>
+                                )}
+                                {result.engine && (
+                                  <p className="result-source">Result from: {result.engine}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p>{typeof parsedResponse === 'string' ? parsedResponse : JSON.stringify(parsedResponse)}</p>
+                        )}
+                      </div>
+                      <span className="time">
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                );
+              }
+              
+              // Handle existing message format (for new messages)
+              return (
                 <div key={index} className={`chat-message ${msg.sender}`}>
                   {msg.object ? (
                     <div className="search-results">
@@ -329,13 +477,8 @@ const Chatbot = ({ chatName,id }) => {
                   )}
                   <span className="time">{msg.time}</span>
                 </div>
-              ) : (
-                <div key={index} className={`chat-message ${msg.sender}`}>
-                  <p>{msg.text}</p>
-                  <span className="time">{msg.time}</span>
-                </div>
-              )
-            ))}
+              );
+            })}
             {/* Show the spinner only when a new message is being processed */}
             {loading && (
               <div className="loading-spinner">
@@ -348,27 +491,14 @@ const Chatbot = ({ chatName,id }) => {
             
             <div className="chat-input_message">
             <div className="number-input-container">
-                <input 
-                  type="number" 
-                  placeholder="Results"
+                <input
+                  type="number"
                   className="number-input"
                   value={numResults}
+                  onChange={handleNumResultsChange}
                   min="0"
-
-                  onChange={(e) => {
-                    const value = Math.max(0, Number(e.target.value));
-                    setNumResults(value);
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #ddd',
-                    marginRight: '10px',
-                    width: '80px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'border-color 0.3s ease',
-                  }}
+                  max="100"
+                  placeholder="0"
                 />
               </div>
               <textarea

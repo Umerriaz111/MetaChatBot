@@ -7,9 +7,10 @@
   --background-light: #f8fafc;
   --gradient-primary: linear-gradient(135deg, #2563eb, #4f46e5);
   --gradient-secondary: linear-gradient(135deg, #3b82f6, #60a5fa);
-  --sidebar-width: 280px;
-  --sidebar-collapsed-width: 80px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
   --header-height: 70px;
+  --gap-size: 10px;
 }
 
 .app-container {
@@ -48,15 +49,15 @@
   min-height: 100vh;
   background: var(--background-light);
   padding: 2rem;
-  margin-left: var(--sidebar-width);
+  margin-left: calc(var(--sidebar-width) + var(--gap-size));
   transition: margin-left 0.3s ease;
-  width: calc(100% - var(--sidebar-width));
+  width: calc(100% - (var(--sidebar-width) + var(--gap-size)));
 }
 
 /* Sidebar collapsed state */
 .sidebar-collapsed .home-container {
-  margin-left: var(--sidebar-collapsed-width);
-  width: calc(100% - var(--sidebar-collapsed-width));
+  margin-left: calc(var(--sidebar-collapsed-width) + var(--gap-size));
+  width: calc(100% - (var(--sidebar-collapsed-width) + var(--gap-size)));
 }
 
 @media screen and (max-width: 768px) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
-import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2, FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import {
   TbLayoutSidebarRightCollapseFilled,
   TbLayoutSidebarLeftCollapseFilled,
@@ -9,12 +9,16 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import { HashLoader } from "react-spinners";
+const BASE_URL="http://127.0.0.1:8000";
+const user_id=1;
 
 const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [editingChat, setEditingChat] = useState(null);
   const [editedName, setEditedName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const [chats, setChats] = useState({
     today: [],
@@ -23,34 +27,41 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   });
   const [sessions, setSessions] = useState([]);
   const [activeselectedChat, setactiveSelectedChat] = useState();
+  const [selectedChatId, setSelectedChatId] = useState(null);
 
   useEffect(() => {
     const fetchSessions = async (user_id) => {
+      setIsLoading(true);
+      const delay = 3000; // 3 seconds delay
       try {
+        // Add artificial delay using Promise
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
         const response = await axios.get(
-          "http://127.0.0.1:8000/api/sessions/",
+          `${BASE_URL}/api/sessions/`,
           {
             params: { user_id },
           }
         );
-        // console.log("Sessions :", response.data);
         setSessions(response.data);
       } catch (error) {
         console.error("Error fetching sessions:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchSessions(5);
+    fetchSessions(user_id);
   }, []);
 
   useEffect(() => {
     if (sessions.length > 0) {
       const now = new Date();
-      const today = new Date(now.setHours(0, 0, 0, 0)); // Start of today
+      const today = new Date(now.setHours(0, 0, 0, 0));
       const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1); // Yesterday's date
+      yesterday.setDate(today.getDate() - 1);
       const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7); // 7 days ago
+      sevenDaysAgo.setDate(today.getDate() - 7);
 
       let todayChats = [];
       let yesterdayChats = [];
@@ -69,6 +80,11 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
           last7DaysChats.push({ name: chatName, id: chatId });
         }
       });
+
+      // Sort each array by ID in descending order
+      todayChats.sort((a, b) => b.id - a.id);
+      yesterdayChats.sort((a, b) => b.id - a.id);
+      last7DaysChats.sort((a, b) => b.id - a.id);
 
       setChats({
         today: todayChats,
@@ -108,7 +124,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/sessions/${id}/`,
+        `${BASE_URL}/api/sessions/${id}/`,
         {
           method: "DELETE",
         }
@@ -147,7 +163,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
       try {
         // Send PATCH request to update session name
         const response = await axios.patch(
-          `http://127.0.0.1:8000/api/sessions/${id}/`,
+          `${BASE_URL}/api/sessions/${id}/`,
           {
             session_name: editedName,
           }
@@ -165,8 +181,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
             return updatedChats;
           });
 
-
-
           setEditingChat(null);
           setEditedName("");
           showToast(`Renamed chat from ${chats[section][index].name} -> ${editedName}`, "success");
@@ -181,7 +195,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   };
   const CreateNewChatAPIcall = async (user_id, session_name) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/sessions/", {
+      const response = await axios.post(`${BASE_URL}/api/sessions/`, {
         user_id: user_id,
         session_name: session_name,
       });
@@ -196,7 +210,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
     console.log("I am Called Umer");
   
     try {
-      let Response = await CreateNewChatAPIcall(5, "Call from API");
+      let Response = await CreateNewChatAPIcall(user_id, "New Chat");
   
       if (!Response || !Response.session_name) {
         console.error("API call failed or returned invalid data:", Response);
@@ -204,19 +218,18 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
       }
   
       const newChat = Response.session_name;
-      const newChatId=Response.id
+      const newChatId = Response.id;
   
       setChats((prevChats) => ({
         ...prevChats,
-        today: [...prevChats.today, { name: newChat, id: newChatId }], // Add the new chat
+        today: [{ name: newChat, id: newChatId }, ...prevChats.today],
       }));
   
       console.log("Chat added successfully:", newChat);
   
-      // Wait for state update before navigating (optional delay)
       setTimeout(() => {
         navigate("/chats/newchat");
-      }, 100); // Small delay to ensure state update
+      }, 100);
   
     } catch (error) {
       console.error("Error in CreateNewChat:", error);
@@ -224,6 +237,7 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   };
   const renderChatItem = (chat, index, section, id) => {
     const isEditing = editingChat === `${section}-${index}`;
+    const isSelected = selectedChatId === id;
 
     if (isEditing) {
       return (
@@ -249,18 +263,22 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
     return (
       <li
         key={index}
-        className="chat-item"
-        onClick={() => navigate(`/chats/${chat}`)}
+        className={`chat-item ${isSelected ? 'selected' : ''}`}
+        onClick={() => {
+          setSelectedChatId(id);
+          handleChatSelection(chat.name, id);
+          navigate(`/chats/${encodeURIComponent(chat.name)}`);
+        }}
       >
         <div className="chat-item-content">
           <FiMessageSquare className="chat-icon" />
-          <span className="chat-name">{chat}</span>
+          <span className="chat-name">{chat.name}</span>
         </div>
         {isSidebarOpen && (
           <div className="chat-actions">
             <button
               className="action-btn rename-btn"
-              onClick={(e) => startRename(section, index, chat, e, id)}
+              onClick={(e) => startRename(section, index, chat.name, e, id)}
               title="Rename chat"
             >
               <FiEdit2 />
@@ -276,6 +294,11 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
         )}
       </li>
     );
+  };
+
+  const handleChatSelection = (chatName, chatId) => {
+    setSelectedChatId(chatId);
+    SelectedChat(chatName, chatId);
   };
 
   return (
@@ -311,42 +334,43 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
       </button>
 
       <div className="sidebar-scroll">
-        {isSidebarOpen && (
-          <>
-           <div className="sidebar-section">
-  {chats?.today?.length > 0 && <h3>Today</h3>}
-  <ul className="chat-list">
-    {chats?.today?.map((chat, index) => (
-      <div
-        key={index}
-        onClick={() => {
-          SelectedChat(chat?.name, chat?.id);
-        }}
-      >
-        {renderChatItem(chat?.name, index, "today", chat?.id)}
-      </div>
-    ))}
-  </ul>
-</div>
+        {isLoading ? (
+          <div className="sidebar-loader">
+            <HashLoader color="#4f96ff" size={50} />
+          </div>
+        ) : (
+          isSidebarOpen && (
+            <>
+             <div className="sidebar-section">
+    {chats?.today?.length > 0 && <h3>Today</h3>}
+    <ul className="chat-list">
+      {chats?.today?.map((chat, index) => (
+        <div key={chat.id}>
+          {renderChatItem(chat, index, "today", chat.id)}
+        </div>
+      ))}
+    </ul>
+  </div>
 
-            <div className="sidebar-section">
-              {chats.yesterday.length > 0 && <h3>Yesterday</h3>}
-              <ul className="chat-list">
-                {chats.yesterday.map((chat, index) =>
-                  renderChatItem(chat.name, index, "yesterday",chat.id)
-                )}
-              </ul>
-            </div>
+              <div className="sidebar-section">
+                {chats.yesterday.length > 0 && <h3>Yesterday</h3>}
+                <ul className="chat-list">
+                  {chats.yesterday.map((chat, index) =>
+                    renderChatItem(chat, index, "yesterday", chat.id)
+                  )}
+                </ul>
+              </div>
 
-            <div className="sidebar-section">
-            {chats.last7Days.length > 0 && <h3>Last 7 Days</h3>}
-              <ul className="chat-list">
-                {chats.last7Days.map((chat, index) =>
-                  renderChatItem(chat.name, index, "last7Days",chat.id)
-                )}
-              </ul>
-            </div>
-          </>
+              <div className="sidebar-section">
+              {chats.last7Days.length > 0 && <h3>Last 7 Days</h3>}
+                <ul className="chat-list">
+                  {chats.last7Days.map((chat, index) =>
+                    renderChatItem(chat, index, "last7Days", chat.id)
+                  )}
+                </ul>
+              </div>
+            </>
+          )
         )}
       </div>
     </div>
