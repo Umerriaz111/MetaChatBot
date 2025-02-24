@@ -1,4 +1,3 @@
-
 import os
 import glob
 import pandas as pd
@@ -12,14 +11,14 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.chat_models import ChatOllama
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
+import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 # Define the configuration for the scraping pipeline
 graph_config = {
    "llm": {
-       "api_key": os.getenv('OPENAI_API_KEY'),
+       "api_key": os.getenv("OPENAI_API_KEY"),
        "model": "openai/gpt-4o-mini",
    },
    "verbose": True,
@@ -28,7 +27,7 @@ graph_config = {
 
 # Step 1: Run the Scraper
 smart_scraper_graph = SmartScraperGraph(
-    prompt="Extract Product Name ,Price  rating and Reviews.",
+    prompt="Extract Product Name ,Price  rating and Reviews of only $10 dollar Shoes.",
     source="https://www.amazon.com/Shoes-Under-10/s?k=Shoes+Under+%2410",
     config=graph_config
 )
@@ -65,7 +64,7 @@ def load_latest_excel():
 latest_file = load_latest_excel()
 df = pd.read_excel(latest_file, engine='openpyxl')
 print(f"Loaded file: {latest_file}")
-print(df.head())  # Preview data
+print(df)  # Preview data
 
 # Step 4: Convert Data to LangChain Document Format
 documents = []
@@ -90,22 +89,25 @@ llm = ChatOllama(model=local_model)
 
 QUERY_PROMPT = PromptTemplate(
     input_variables=["question"],
-    template="""You are an AI assistant helping users find shoes under $10. Generate five alternative queries 
-    to improve search results, considering name, price, rating, reviews, delivery, and shipping details.
+    template="""You are an AI assistant helping users find shoes details. Your task is to generate five different versions of the given user question that are more specific or provide alternative ways to search the shoe data. Generate five alternative queries to improve search results, considering name, price, rating, reviews, delivery, and shipping details.
     
     Original question: {question}"""
 )
 
+# Configure retriever with higher k value to get more results
 retriever = MultiQueryRetriever.from_llm(
-    vector_db.as_retriever(), 
-    llm,
+    retriever=vector_db.as_retriever(search_kwargs={"k": 100}),  # Increased k value
+    llm=llm,
     prompt=QUERY_PROMPT
 )
 
 # Step 8: Define RAG Prompt
-template = """Answer the question based ONLY on the following context:
+template = """Answer the question based on ALL the following context. Make sure to consider all relevant information from the provided context:
 {context}
+
 Question: {question}
+
+Important: Consider ALL relevant information from the context when providing your answer. If there are multiple relevant items, mention them all.
 """
 
 prompt = ChatPromptTemplate.from_template(template)
