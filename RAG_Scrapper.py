@@ -12,11 +12,14 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.chat_models import ChatOllama
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Define the configuration for the scraping pipeline
 graph_config = {
    "llm": {
-       "api_key": "",
+       "api_key": os.getenv('OPENAI_API_KEY'),
        "model": "openai/gpt-4o-mini",
    },
    "verbose": True,
