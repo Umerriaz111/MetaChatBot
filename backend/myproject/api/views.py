@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 import json
 from langchain_community.tools.searx_search.tool import SearxSearchResults
 from langchain_community.utilities.searx_search import SearxSearchWrapper
+from . import RAG_Scrapper as rag
 
 load_dotenv()
 
@@ -144,7 +145,44 @@ class MessageList(generics.ListCreateAPIView):
             }, status=status.HTTP_201_CREATED)
         
         else:
-            return Response({"message": f"You selected scraping as your message_type. and your query was {query}"}, status=status.HTTP_200_OK)
+            llm_response = assistant2(query)
+
+            # if llm_response == 'not safe':
+            #     return Response({"results": []})
+
+            # Extract session from URL
+            session_id = self.kwargs['session_id']
+            session = ChatSession.objects.get(id=session_id)
+
+            # Extract user message and generate chatbot response
+            user_message = query
+            if llm_response != 'not safe':
+                searching_result = search_results(user_message, number_of_items, engines)
+            else:
+                chatbot_response = 'Search results are not safe. Please try again.'
+            
+            # Generate new query
+
+            config = rag.initialize_environment()
+
+            for i in searching_result:
+                scraping_result = rag.scrape_data(config,user_message,i['url'])
+                
+                # save to db
+                documents = rag.convert_string_to_documents(scraping_result)
+                chunks = rag.create_text_chunks(documents)
+                vector_db = rag.setup_vector_db(chunks)
+                
+                # Setup LLM and chain
+                llm = rag.ChatOllama(model="mistral")
+                retriever = rag.setup_retriever(vector_db, llm)
+                chain = rag.setup_rag_chain(retriever, llm)
+
+
+
+
+
+            # return Response({"message": f"You selected scraping as your message_type. and your query was {query}"}, status=status.HTTP_200_OK)
 
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
