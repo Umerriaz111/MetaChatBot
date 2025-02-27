@@ -21,7 +21,7 @@ import json
 from langchain_community.tools.searx_search.tool import SearxSearchResults
 from langchain_community.utilities.searx_search import SearxSearchWrapper
 from . import RAG_Scrapper as rag
-
+from langchain_community.chat_models import ChatOllama
 load_dotenv()
 
 # User Views
@@ -158,25 +158,46 @@ class MessageList(generics.ListCreateAPIView):
             user_message = query
             if llm_response != 'not safe':
                 searching_result = search_results(user_message, number_of_items, engines)
+                print(f'searching_results = {searching_result}')
             else:
                 chatbot_response = 'Search results are not safe. Please try again.'
             
             # Generate new query
 
             config = rag.initialize_environment()
+            all_documents = []
+            for result in searching_result:
+                scraping_result = rag.scrape_data(config,user_message,result['url'])
+                scraped_text = scraping_result.get("content", "")
+                if not scraped_text:
+                    continue  # Skip if no content
+                print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")  # Print first 200 chars
 
-            for i in searching_result:
-                scraping_result = rag.scrape_data(config,user_message,i['url'])
-                
-                # save to db
-                documents = rag.convert_string_to_documents(scraping_result)
-                chunks = rag.create_text_chunks(documents)
-                vector_db = rag.setup_vector_db(chunks)
-                
-                # Setup LLM and chain
-                llm = rag.ChatOllama(model="mistral")
-                retriever = rag.setup_retriever(vector_db, llm)
-                chain = rag.setup_rag_chain(retriever, llm)
+                # Convert scraped text to a document
+                document = rag.convert_string_to_document(scraped_text)
+                all_documents.append(document)
+
+            # Step 4: Store all documents in the vector database
+            if not all_documents:
+                return Response({"message": "No valid content found to process."})
+
+            print(f"Total documents stored in vector DB: {len(all_documents)}")
+            chunks = rag.create_text_chunks(all_documents)
+            vector_db = rag.setup_vector_db(chunks)
+
+            # Step 5: Use LLM to retrieve answers from vector DB
+            llm = ChatOpenAI(
+                model="gpt-4o",
+                temperature=0.7,
+                openai_api_key=os.getenv("OPENAI_API_KEY")
+            )
+            retriever = rag.setup_retriever(vector_db, llm)
+            chain = rag.setup_rag_chain(retriever, llm)
+
+            # Generate the final response
+            final_response = chain.invoke(query)
+
+            return JsonResponse({"answer": final_response}, safe=False)
 
 
 

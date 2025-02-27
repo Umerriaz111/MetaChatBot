@@ -4,7 +4,7 @@ import pandas as pd
 from scrapegraphai.graphs import SmartScraperGraph
 from langchain.schema import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -12,6 +12,7 @@ from langchain_community.chat_models import ChatOllama
 from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from dotenv import load_dotenv
+from langchain.chat_models import ChatOpenAI
 
 def initialize_environment():
     """Initialize environment variables and configurations."""
@@ -88,7 +89,7 @@ def setup_vector_db(chunks):
     """Initialize and populate vector database."""
     return Chroma.from_documents(
         documents=chunks,
-        embedding=OllamaEmbeddings(model="nomic-embed-text", show_progress=True),
+        embedding = OllamaEmbeddings(model="nomic-embed-text"),
         collection_name="local-rag"
     )
 
@@ -153,7 +154,7 @@ def main():
     vector_db = setup_vector_db(chunks)
     
     # Setup LLM and chain
-    llm = ChatOllama(model="mistral")
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7,openai_api_key=os.getenv('OPENAI_API_KEY'))
     retriever = setup_retriever(vector_db, llm)
     chain = setup_rag_chain(retriever, llm)
     
