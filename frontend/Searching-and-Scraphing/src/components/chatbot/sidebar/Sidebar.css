@@ -12,8 +12,54 @@
     flex-direction: column;
     z-index: 1000;
     border-right: 1px solid rgba(74, 144, 226, 0.1);
-    box-shadow: 2px 0 10px rgba(79, 150, 255, 0.05);
+    box-shadow: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0;
+    padding: 0;
+}
+
+/* Sidebar visible state */
+.sidebar.visible {
+    left: 0;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Media query for larger screens */
+@media screen and (min-width: 769px) {
+    .sidebar {
+        left: 0;
+    }
+    
+    .sidebar.visible {
+        left: 0;
+    }
+}
+
+/* Media query for mobile devices */
+@media screen and (max-width: 768px) {
+    .sidebar {
+        left: -260px;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .sidebar.visible {
+        left: 0;
+        box-shadow: none;
+    }
+
+    .sidebar-header {
+        padding: 12px 8px;
+    }
+
+    .logo-container {
+        padding-left: 4px;
+    }
+
+    .sidebar-toggle-btn {
+        padding: 4px;
+        margin-right: 0;
+    }
 }
 
 /* Hover effect on sidebar */
@@ -127,13 +173,42 @@
     position: relative;
     min-width: 0;
     border: 1px solid rgba(74, 144, 226, 0.1);
-    animation: slideIn 0.3s ease forwards;
+    animation: slideInFromTop 0.3s ease-out forwards;
 }
 
+/* Add a scale effect when chat is created */
+.chat-item:first-child {
+    animation: slideInFromTop 0.3s ease-out forwards, glow 0.5s ease-out;
+}
+
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 0 rgba(74, 144, 226, 0);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 0 rgba(74, 144, 226, 0);
+        transform: scale(1);
+    }
+}
+
+/* Enhance hover effect */
 .chat-item:hover {
     background: rgba(74, 144, 226, 0.1);
     transform: translateY(-2px) scale(1.01);
     box-shadow: 0 8px 25px rgba(74, 144, 226, 0.15);
+}
+
+/* Add transition for smooth color changes */
+.chat-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 0.3s ease,
+                transform 0.3s ease,
+                box-shadow 0.3s ease;
 }
 
 .chat-item-content {
@@ -531,19 +606,19 @@
 }
 
 /* Enhanced Animations */
-@keyframes slideIn {
-    from {
+@keyframes slideInFromTop {
+    0% {
         opacity: 0;
-        transform: translateX(-20px);
+        transform: translateY(-20px);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0);
     }
 }
 
 .chat-item {
-    animation: slideIn 0.3s ease forwards;
+    animation: slideInFromTop 0.3s ease-out forwards;
 }
 
 /* Professional Loading Animation */
@@ -687,4 +762,19 @@
 /* Remove any collapsed state spacing */
 .sidebar.collapsed .sidebar-scroll {
     padding-bottom: 0;
+}
+
+/* iPad and Tablet Styles */
+@media screen and (max-width: 1024px) {
+    .sidebar {
+        border-right: none;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        width: 260px;
+    }
+
+    .sidebar.visible {
+        box-shadow: none;
+    }
 }

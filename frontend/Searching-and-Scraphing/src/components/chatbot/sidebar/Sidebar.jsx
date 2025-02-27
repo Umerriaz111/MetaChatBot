@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
-import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2, FiChevronRight, FiChevronLeft } from "react-icons/fi";
+import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2, FiChevronRight, FiChevronLeft, FiCheckCircle } from "react-icons/fi";
 import {
   TbLayoutSidebarRightCollapseFilled,
   TbLayoutSidebarLeftCollapseFilled,
@@ -13,12 +13,13 @@ import { HashLoader } from "react-spinners";
 const BASE_URL="http://127.0.0.1:8000";
 const user_id=1;
 
-const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
+const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isVisible }) => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [editingChat, setEditingChat] = useState(null);
   const [editedName, setEditedName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
 
   const [chats, setChats] = useState({
     today: [],
@@ -27,15 +28,18 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   });
   const [sessions, setSessions] = useState([]);
   const [activeselectedChat, setactiveSelectedChat] = useState();
-  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [selectedChatId, setSelectedChatId] = useState(() => {
+    // Initialize from props or localStorage
+    return initialSelectedId || parseInt(localStorage.getItem('selectedChatId')) || null;
+  });
 
   useEffect(() => {
     const fetchSessions = async (user_id) => {
       setIsLoading(true);
-      const delay = 3000; // 3 seconds delay
+      // const delay = 3000; // 3 seconds delay
       try {
         // Add artificial delay using Promise
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // await new Promise(resolve => setTimeout(resolve, delay));
         
         const response = await axios.get(
           `${BASE_URL}/api/sessions/`,
@@ -94,6 +98,26 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
     }
   }, [sessions]);
 
+  // Add this useEffect to handle initial selection
+  useEffect(() => {
+    if (selectedChatId && chats.today.length > 0) {
+      // Find the chat in all sections
+      const findChatById = (id) => {
+        for (const section of ['today', 'yesterday', 'last7Days']) {
+          const chat = chats[section].find(c => c.id === id);
+          if (chat) return chat;
+        }
+        return null;
+      };
+
+      const selectedChat = findChatById(selectedChatId);
+      if (selectedChat) {
+        // Update the selection visually
+        setSelectedChatId(selectedChat.id);
+      }
+    }
+  }, [chats, selectedChatId]);
+
   // console.log("This is Chat :", chats)
 
   const showToast = (message, type = "success") => {
@@ -120,33 +144,220 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   };
 
   const handleDelete = async (section, index, e, id) => {
-    e.stopPropagation(); // Prevents event from propagating
+    e.stopPropagation();
 
-    try {
-      const response = await fetch(
-        `${BASE_URL}/api/sessions/${id}/`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete the chat session");
-      }
-
-      const chatName = chats[section][index].name;
-
-      // Remove the deleted chat from state
-      setChats((prev) => ({
-        ...prev,
-        [section]: prev[section].filter((_, i) => i !== index),
-      }));
-
-      showToast(`Deleted chat: ${chatName}`);
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      showToast("Failed to delete chat. Please try again.");
+    // Prevent multiple delete confirmations
+    if (isDeleteConfirmationOpen) {
+      return;
     }
+
+    setIsDeleteConfirmationOpen(true);
+    
+    // Store the toast ID for proper dismissal
+    let confirmToastId = null;
+
+    const handleCancel = () => {
+        setIsDeleteConfirmationOpen(false);
+        toast.dismiss(confirmToastId);
+    };
+
+    const handleConfirmDelete = async () => {
+        // First dismiss the confirmation dialog
+        setIsDeleteConfirmationOpen(false);
+        toast.dismiss(confirmToastId);
+        
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/sessions/${id}/`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to delete the chat session");
+            }
+
+            const chatName = chats[section][index].name;
+
+            // Remove the deleted chat from state
+            setChats((prev) => ({
+                ...prev,
+                [section]: prev[section].filter((_, i) => i !== index),
+            }));
+
+            // Show success notification
+            toast.success(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <p style={{ fontSize: '14px', marginBottom: '2px' }}>Successfully Deleted "{chatName}"</p>
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    style: {
+                        background: 'linear-gradient(135deg, #28a745, #20c997)',
+                        color: '#fff',
+                        borderRadius: '10px',
+                        boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)',
+                        padding: '16px',
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Error deleting chat:", error);
+            toast.error(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                        width: '24px',
+                        height: '24px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <FiTrash2 size={16} />
+                    </div>
+                    <div>
+                        <p style={{ fontSize: '14px', marginBottom: '2px' }}>Delete Failed</p>
+                        <p style={{ fontSize: '12px', opacity: 0.8 }}>Please try again later</p>
+                    </div>
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 4000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    style: {
+                        background: 'linear-gradient(135deg, #dc3545, #ff4757)',
+                        color: '#fff',
+                        borderRadius: '10px',
+                        boxShadow: '0 4px 15px rgba(220, 53, 69, 0.3)',
+                        padding: '16px',
+                    },
+                    onClose: () => setIsDeleteConfirmationOpen(false)
+                }
+            );
+        }
+    };
+
+    // Create the confirmation dialog
+    confirmToastId = toast.warn(
+        <div className="delete-confirmation">
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '10px 0'
+            }}>
+                <div style={{
+                    width: '60px',
+                    height: '60px',
+                    background: 'linear-gradient(135deg, #ff6b6b22, #ff8e5322)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '15px'
+                }}>
+                    <FiTrash2 size={28} style={{ color: '#ff6b6b' }} />
+                </div>
+                <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    marginBottom: '10px',
+                    background: 'linear-gradient(135deg, #1a1a2e, #2a3f5f)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                }}>
+                    Delete Confirmation
+                </h3>
+                <p style={{
+                    fontSize: '15px',
+                    color: '#1a1a2e',
+                    marginBottom: '8px',
+                    fontWeight: '500'
+                }}>
+                    Are you sure you want to delete this chat?
+                </p>
+                <p style={{
+                    fontSize: '13px',
+                    color: '#666',
+                    marginBottom: '20px',
+                }}>
+                    This action will permanently delete all messages and cannot be undone.
+                </p>
+            </div>
+            <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center',
+                marginTop: '5px'
+            }}>
+                <button
+                    onClick={handleCancel}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        background: 'white',
+                        color: '#666',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleConfirmDelete}
+                    style={{
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #ff6b6b, #ff8e53)',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        boxShadow: '0 4px 15px rgba(255, 107, 107, 0.25)',
+                    }}
+                >
+                    <FiTrash2 size={16} />
+                    Delete
+                </button>
+            </div>
+        </div>,
+        {
+            position: "top-center",
+            autoClose: false,
+            hideProgressBar: true,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: false,
+            closeButton: false,
+            style: {
+                background: '#fff',
+                borderRadius: '16px',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                border: '1px solid rgba(0, 0, 0, 0.05)',
+                padding: '24px',
+                minWidth: '360px',
+            },
+            onClose: () => setIsDeleteConfirmationOpen(false)
+        }
+    );
   };
 
   const startRename = (section, index, currentName, e, id) => {
@@ -207,32 +418,64 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
   };
 
   const CreateNewChat = async () => {
-    console.log("I am Called Umer");
-  
     try {
-      let Response = await CreateNewChatAPIcall(user_id, "New Chat");
+      // Create a temporary ID and add the chat immediately for instant feedback
+      const tempId = Date.now();
+      const tempChat = { name: "New Chat", id: tempId };
+      
+      // Optimistically update the UI
+      setChats((prevChats) => ({
+        ...prevChats,
+        today: [tempChat, ...prevChats.today],
+      }));
+
+      // Update selection immediately
+      setSelectedChatId(tempId);
+      localStorage.setItem('selectedChatId', tempId);
+      localStorage.setItem('selectedChatName', "New Chat");
+      SelectedChat("New Chat", tempId);
+
+      // Navigate immediately
+      navigate(`/chats/${encodeURIComponent("New Chat")}`);
+
+      // Make the API call in the background
+      const Response = await CreateNewChatAPIcall(user_id, "New Chat");
   
       if (!Response || !Response.session_name) {
+        // If API call fails, revert the changes
+        setChats((prevChats) => ({
+          ...prevChats,
+          today: prevChats.today.filter(chat => chat.id !== tempId)
+        }));
         console.error("API call failed or returned invalid data:", Response);
+        toast.error("Failed to create new chat. Please try again.");
         return;
       }
   
+      // Update the temporary chat with real data
       const newChat = Response.session_name;
       const newChatId = Response.id;
   
       setChats((prevChats) => ({
         ...prevChats,
-        today: [{ name: newChat, id: newChatId }, ...prevChats.today],
+        today: [
+          { name: newChat, id: newChatId },
+          ...prevChats.today.filter(chat => chat.id !== tempId)
+        ],
       }));
+
+      // Update selection with real ID
+      setSelectedChatId(newChatId);
+      localStorage.setItem('selectedChatId', newChatId);
+      localStorage.setItem('selectedChatName', newChat);
+      SelectedChat(newChat, newChatId);
   
-      console.log("Chat added successfully:", newChat);
-  
-      setTimeout(() => {
-        navigate("/chats/newchat");
-      }, 100);
+      // Update URL with real chat name
+      navigate(`/chats/${encodeURIComponent(newChat)}`);
   
     } catch (error) {
       console.error("Error in CreateNewChat:", error);
+      toast.error("Failed to create new chat. Please try again.");
     }
   };
   const renderChatItem = (chat, index, section, id) => {
@@ -298,11 +541,13 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat }) => {
 
   const handleChatSelection = (chatName, chatId) => {
     setSelectedChatId(chatId);
+    localStorage.setItem('selectedChatId', chatId);
+    localStorage.setItem('selectedChatName', chatName);
     SelectedChat(chatName, chatId);
   };
 
   return (
-    <div className={`sidebar ${isSidebarOpen ? "open" : "closed"}`}>
+    <div className={`sidebar ${isSidebarOpen ? "open" : "closed"} ${isVisible ? 'visible' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-container">
           {isSidebarOpen && (

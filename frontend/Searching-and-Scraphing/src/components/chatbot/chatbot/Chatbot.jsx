@@ -17,10 +17,12 @@ import useClipboard from "react-use-clipboard";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
+import { IoIosArrowDroprightCircle } from "react-icons/io";
+
 
 const BASE_URL = "http://127.0.0.1:8000";
 
-const Chatbot = ({ chatName,id }) => {
+const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
  
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -322,29 +324,48 @@ const Chatbot = ({ chatName,id }) => {
       ) : (
         <>
           <header className="chatbot-header">
-            <img src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
-            <h1>Searching and Scraping Bot</h1>
-            <div className="menu-container">
-              <BsThreeDots
-                className="menu-icon" 
-                onClick={() => setMenuOpen(!menuOpen)} 
-              />
-              {menuOpen && (
-                <div className="menu-dropdown">
-                  <div 
-                    className={`menu-item ${selectedOption === 'searching' ? 'selected' : ''}`}
-                    onClick={() => handleOptionSelect('searching')}
-                  >
-                    Searching
-                  </div>
-                  <div 
-                    className={`menu-item ${selectedOption === 'scraping' ? 'selected' : ''}`}
-                    onClick={() => handleOptionSelect('scraping')}
-                  >
-                    Scraping
-                  </div>
-                </div>
+            <div className="header-left">
+              {!showSidebar && (
+                <IoIosArrowDroprightCircle 
+                  fontSize={23} 
+                  onClick={onToggleSidebar}
+                  className="sidebar-toggle-icon"
+                />
               )}
+              <img src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
+            </div>
+            <h1>Searching and Scraping Bot</h1>
+            <div className="header-right">
+              {showSidebar && (
+                <IoIosArrowDroprightCircle 
+                  fontSize={23} 
+                  onClick={onToggleSidebar}
+                  className="sidebar-toggle-icon sidebar-visible"
+                  style={{ transform: 'rotate(180deg)' }}
+                />
+              )}
+              <div className="menu-container">
+                <BsThreeDots
+                  className="menu-icon" 
+                  onClick={() => setMenuOpen(!menuOpen)} 
+                />
+                {menuOpen && (
+                  <div className="menu-dropdown">
+                    <div 
+                      className={`menu-item ${selectedOption === 'searching' ? 'selected' : ''}`}
+                      onClick={() => handleOptionSelect('searching')}
+                    >
+                      Searching
+                    </div>
+                    <div 
+                      className={`menu-item ${selectedOption === 'scraping' ? 'selected' : ''}`}
+                      onClick={() => handleOptionSelect('scraping')}
+                    >
+                      Scraping
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
