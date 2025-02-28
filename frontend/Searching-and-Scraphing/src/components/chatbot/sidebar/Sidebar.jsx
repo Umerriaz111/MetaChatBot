@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
-import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2, FiChevronRight, FiChevronLeft, FiCheckCircle } from "react-icons/fi";
-import {
-  TbLayoutSidebarRightCollapseFilled,
-  TbLayoutSidebarLeftCollapseFilled,
-} from "react-icons/tb";
+import { FiMessageSquare, FiPlus, FiEdit2, FiTrash2, FiCheckCircle } from "react-icons/fi";
+import { TbLayoutSidebarLeftExpand, TbLayoutSidebarRightExpand } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -566,9 +563,9 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
           title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isSidebarOpen ? (
-            <TbLayoutSidebarLeftCollapseFilled />
+            <TbLayoutSidebarRightExpand size={26} />
           ) : (
-            <TbLayoutSidebarRightCollapseFilled />
+            <TbLayoutSidebarLeftExpand size={26} />
           )}
         </button>
       </div>

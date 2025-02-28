@@ -18,6 +18,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 import { IoIosArrowDroprightCircle } from "react-icons/io";
+import { TbLayoutSidebarLeftExpand, TbLayoutSidebarRightExpand } from "react-icons/tb";
 
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -326,8 +327,8 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
           <header className="chatbot-header">
             <div className="header-left">
               {!showSidebar && (
-                <IoIosArrowDroprightCircle 
-                  fontSize={23} 
+                <TbLayoutSidebarLeftExpand 
+                  size={26} 
                   onClick={onToggleSidebar}
                   className="sidebar-toggle-icon"
                 />
@@ -337,11 +338,10 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
             <h1>Searching and Scraping Bot</h1>
             <div className="header-right">
               {showSidebar && (
-                <IoIosArrowDroprightCircle 
-                  fontSize={23} 
+                <TbLayoutSidebarRightExpand 
+                  size={26}
                   onClick={onToggleSidebar}
                   className="sidebar-toggle-icon sidebar-visible"
-                  style={{ transform: 'rotate(180deg)' }}
                 />
               )}
               <div className="menu-container">

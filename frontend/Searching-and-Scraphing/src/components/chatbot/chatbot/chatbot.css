@@ -36,25 +36,45 @@
     transition: all 0.3s ease;
 }
 
+/* Sidebar Toggle Icon Base Styles */
 .sidebar-toggle-icon {
     cursor: pointer;
-    color: #4f96ff;
     transition: all 0.3s ease;
-    z-index: 1001;
+    display: none; /* Hide by default */
 }
 
-.sidebar-toggle-icon:hover {
-    transform: scale(1.1);
-    color: #357abd;
+/* Show toggle icon only on mobile devices */
+@media screen and (max-width: 768px) {
+    .sidebar-toggle-icon {
+        display: block;
+        font-size: 26px;
+        color: #4f96ff;
+        margin: 0;
+        transition: all 0.3s ease;
+        position: fixed;
+        left: 15px;
+        top: 15px;
+        z-index: 2000;
+        background: white;
+        padding: 8px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar-toggle-icon.sidebar-visible {
+        transform: rotate(180deg);
+        left: 220px;
+    }
+
+    .header-left {
+        margin-left: 50px; /* Add space for the fixed toggle icon */
+    }
 }
 
-.sidebar-toggle-icon.sidebar-visible {
-    margin-right: 10px;
-}
-
+/* Hide sidebar toggle icons on larger screens */
 @media screen and (min-width: 769px) {
     .sidebar-toggle-icon {
-        display: none;
+        display: none !important;
     }
 }
 
@@ -67,9 +87,22 @@
         gap: 4px;
     }
 
-    .sidebar-toggle-icon {
-        margin-left: 0;
-        padding-left: 0;
+    .chatbot-header .logo {
+        height: 35px;
+        margin-left: 4px;
+    }
+
+    .chatbot-header h1 {
+        font-size: 20px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .chatbot-header {
+        padding: 10px;
+        height: 45px;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
     }
 
     .chatbot-header .logo {
@@ -768,11 +801,6 @@ body.sidebar-closed .chatbot-container {
 @media screen and (max-width: 380px) {
     body {
         padding: 4px;
-    }
-
-    .chatbot-header {
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
     }
 
     .chat-input_message {
@@ -1519,49 +1547,5 @@ body.dark-theme .icon-container.selected:hover {
 
     .menu-icon {
         font-size: 16px;
-    }
-}
-
-.sidebar-toggle-icon {
-    cursor: pointer;
-    color: #4f96ff;
-    transition: all 0.3s ease;
-}
-
-.sidebar-toggle-icon:hover {
-    transform: scale(1.1);
-    color: #357abd;
-}
-
-@media screen and (min-width: 769px) {
-    .sidebar-toggle-icon {
-        display: none;
-    }
-}
-
-/* iPad and Tablet Styles */
-@media screen and (max-width: 1024px) {
-    .chatbot-container {
-        width: calc(100vw - 260px);
-        margin-left: 260px;
-        border-left: none;
-    }
-
-    body.sidebar-closed .chatbot-container {
-        width: calc(100vw - 70px);
-        margin-left: 70px;
-    }
-}
-
-/* Mobile Styles */
-@media screen and (max-width: 768px) {
-    .chatbot-container {
-        width: 100vw;
-        margin-left: 0;
-    }
-
-    body.sidebar-closed .chatbot-container {
-        width: 100vw;
-        margin-left: 0;
     }
 }
