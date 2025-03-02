@@ -159,50 +159,58 @@ class MessageList(generics.ListCreateAPIView):
             if llm_response != 'not safe':
                 searching_result = search_results(user_message, number_of_items, engines)
                 print(f'searching_results = {searching_result}')
+                
+                # Save results in vector db
+                config = rag.initialize_environment()
+                all_documents = []
+                for result in searching_result:
+                    scraping_result = rag.scrape_data(config,user_message,result['url'])
+                    scraped_text = scraping_result.get("content", "")
+                    if not scraped_text:
+                        continue  # Skip if no content
+                    print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")  # Print first 200 chars
+
+                    # Convert scraped text to a document
+                    document = rag.convert_string_to_document(scraped_text)
+                    all_documents.append(document)
+
+                # Step 4: Store all documents in the vector database
+                if not all_documents:
+                    chatbot_response = 'Issue occurred while storing documents in vector DB.'
+                else:
+                    print(f"Total documents stored in vector DB: {len(all_documents)}")
+                    chunks = rag.create_text_chunks(all_documents)
+                    vector_db = rag.setup_vector_db(chunks)
+                    # Step 5: Use LLM to retrieve answers from vector DB
+                    llm = ChatOpenAI(
+                        model="gpt-4o",
+                        temperature=0.7,
+                        openai_api_key=os.getenv("OPENAI_API_KEY")
+                    )
+                    retriever = rag.setup_retriever(vector_db, llm)
+                    chain = rag.setup_rag_chain(retriever, llm)
+
+                    # Generate the final response
+                    chatbot_response = chain.invoke(query)
             else:
                 chatbot_response = 'Search results are not safe. Please try again.'
-            
-            # Generate new query
 
-            config = rag.initialize_environment()
-            all_documents = []
-            for result in searching_result:
-                scraping_result = rag.scrape_data(config,user_message,result['url'])
-                scraped_text = scraping_result.get("content", "")
-                if not scraped_text:
-                    continue  # Skip if no content
-                print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")  # Print first 200 chars
-
-                # Convert scraped text to a document
-                document = rag.convert_string_to_document(scraped_text)
-                all_documents.append(document)
-
-            # Step 4: Store all documents in the vector database
-            if not all_documents:
-                return Response({"message": "No valid content found to process."})
-
-            print(f"Total documents stored in vector DB: {len(all_documents)}")
-            chunks = rag.create_text_chunks(all_documents)
-            vector_db = rag.setup_vector_db(chunks)
-
-            # Step 5: Use LLM to retrieve answers from vector DB
-            llm = ChatOpenAI(
-                model="gpt-4o",
-                temperature=0.7,
-                openai_api_key=os.getenv("OPENAI_API_KEY")
+            # Save message to DB
+            message = Message.objects.create(
+                session=session,
+                user_message=user_message,
+                chatbot_response=chatbot_response,
+                message_type=message_type
             )
-            retriever = rag.setup_retriever(vector_db, llm)
-            chain = rag.setup_rag_chain(retriever, llm)
 
-            # Generate the final response
-            final_response = chain.invoke(query)
-
-            return Response({"answer": final_response})
-
-
-
-
-
+            # Return response
+            return Response({
+                "id": message.id,
+                "user_message": message.user_message,
+                "chatbot_response": message.chatbot_response,
+                "created_at": message.created_at,
+                "message_type": message.message_type
+            }, status=status.HTTP_201_CREATED)
             # return Response({"message": f"You selected scraping as your message_type. and your query was {query}"}, status=status.HTTP_200_OK)
 
 

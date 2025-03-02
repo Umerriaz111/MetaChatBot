@@ -13,6 +13,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
+from langchain.embeddings import OpenAIEmbeddings
 
 def initialize_environment():
     """Initialize environment variables and configurations."""
@@ -89,7 +90,7 @@ def setup_vector_db(chunks):
     """Initialize and populate vector database."""
     return Chroma.from_documents(
         documents=chunks,
-        embedding = OllamaEmbeddings(model="nomic-embed-text"),
+        embedding = OpenAIEmbeddings(model="text-embedding-ada-002"),
         collection_name="local-rag"
     )
 
