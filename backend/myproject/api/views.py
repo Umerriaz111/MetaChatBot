@@ -197,7 +197,7 @@ class MessageList(generics.ListCreateAPIView):
             # Generate the final response
             final_response = chain.invoke(query)
 
-            return JsonResponse({"answer": final_response}, safe=False)
+            return Response({"answer": final_response})
 
 
 
