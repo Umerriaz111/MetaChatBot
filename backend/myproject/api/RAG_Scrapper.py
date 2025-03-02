@@ -86,6 +86,15 @@ def create_text_chunks(documents):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=7500, chunk_overlap=100)
     return text_splitter.split_documents(documents)
 
+def get_or_create_vector_db(session):
+    """Retrieve or create a unique vector DB for the session."""
+    vector_db_path = os.path.join("dbs", session.vector_db_name)  # Each session has a separate DB
+    embedding = OpenAIEmbeddings(model="text-embedding-ada-002")
+
+    # Load or create vector DB
+    vector_db = Chroma(persist_directory=vector_db_path, embedding_function=embedding)
+    return vector_db
+
 def setup_vector_db(chunks):
     """Initialize and populate vector database."""
     return Chroma.from_documents(

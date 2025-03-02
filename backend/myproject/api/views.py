@@ -93,41 +93,31 @@ class MessageList(generics.ListCreateAPIView):
         context['session'] = ChatSession.objects.get(id=session_id)
         return context
     
-    def post(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs): 
         query = request.GET.get('query')
         number_of_items = int(request.GET.get('number_of_items', 0))
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
-        # query_type = request.GET.get('query_type', 'searching')  # Default to 'searching' if not specified
-        message_type = request.GET.get('message_type', 'searching')  # Default to 'searching' if not specified
-        
+        message_type = request.GET.get('message_type', 'searching')
+
         if message_type not in ['searching', 'scraping']:
             return Response({"message": "Invalid message_type. Must be either 'searching' or 'scraping'"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if not query or query == '':
             return Response({"message": "Either Query not sent or Query is empty"})
-        
+
         if not engines or engines == ['']:
             engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
 
-        if message_type == 'searching':
+        # Extract session from URL
+        session_id = self.kwargs['session_id']
+        session = ChatSession.objects.get(id=session_id)
 
+        if message_type == 'searching':
             llm_response = assistant2(query)
 
-            # if llm_response == 'not safe':
-            #     return Response({"results": []})
-
-            # Extract session from URL
-            session_id = self.kwargs['session_id']
-            session = ChatSession.objects.get(id=session_id)
-
-            # Extract user message and generate chatbot response
             user_message = query
-            if llm_response != 'not safe':
-                chatbot_response = search_results(user_message, number_of_items, engines)
-            else:
-                chatbot_response = 'Search results are not safe. Please try again.'
+            chatbot_response = search_results(user_message, number_of_items, engines) if llm_response != 'not safe' else 'Search results are not safe. Please try again.'
 
-            # Save message to DB
             message = Message.objects.create(
                 session=session,
                 user_message=user_message,
@@ -135,7 +125,6 @@ class MessageList(generics.ListCreateAPIView):
                 message_type=message_type
             )
 
-            # Return response
             return Response({
                 "id": message.id,
                 "user_message": message.user_message,
@@ -143,45 +132,38 @@ class MessageList(generics.ListCreateAPIView):
                 "created_at": message.created_at,
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
-        
-        else:
+
+        else:  # Scraping
             llm_response = assistant2(query)
 
-            # if llm_response == 'not safe':
-            #     return Response({"results": []})
-
-            # Extract session from URL
-            session_id = self.kwargs['session_id']
-            session = ChatSession.objects.get(id=session_id)
-
-            # Extract user message and generate chatbot response
             user_message = query
             if llm_response != 'not safe':
                 searching_result = search_results(user_message, number_of_items, engines)
                 print(f'searching_results = {searching_result}')
                 
-                # Save results in vector db
+                # Save results in session-specific vector DB
                 config = rag.initialize_environment()
                 all_documents = []
                 for result in searching_result:
-                    scraping_result = rag.scrape_data(config,user_message,result['url'])
+                    scraping_result = rag.scrape_data(config, user_message, result['url'])
                     scraped_text = scraping_result.get("content", "")
                     if not scraped_text:
-                        continue  # Skip if no content
-                    print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")  # Print first 200 chars
+                        continue
+                    print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")
 
-                    # Convert scraped text to a document
                     document = rag.convert_string_to_document(scraped_text)
                     all_documents.append(document)
 
-                # Step 4: Store all documents in the vector database
                 if not all_documents:
                     chatbot_response = 'Issue occurred while storing documents in vector DB.'
                 else:
                     print(f"Total documents stored in vector DB: {len(all_documents)}")
                     chunks = rag.create_text_chunks(all_documents)
-                    vector_db = rag.setup_vector_db(chunks)
-                    # Step 5: Use LLM to retrieve answers from vector DB
+
+                    # Use session-specific vector DB
+                    vector_db = rag.get_or_create_vector_db(session)
+                    vector_db.add_documents(chunks)  # Add new documents to the session DB
+
                     llm = ChatOpenAI(
                         model="gpt-4o",
                         temperature=0.7,
@@ -190,7 +172,6 @@ class MessageList(generics.ListCreateAPIView):
                     retriever = rag.setup_retriever(vector_db, llm)
                     chain = rag.setup_rag_chain(retriever, llm)
 
-                    # Generate the final response
                     chatbot_response = chain.invoke(query)
             else:
                 chatbot_response = 'Search results are not safe. Please try again.'
@@ -203,7 +184,6 @@ class MessageList(generics.ListCreateAPIView):
                 message_type=message_type
             )
 
-            # Return response
             return Response({
                 "id": message.id,
                 "user_message": message.user_message,
@@ -211,7 +191,6 @@ class MessageList(generics.ListCreateAPIView):
                 "created_at": message.created_at,
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
-            # return Response({"message": f"You selected scraping as your message_type. and your query was {query}"}, status=status.HTTP_200_OK)
 
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
