@@ -25,13 +25,10 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
   });
   const [sessions, setSessions] = useState([]);
   const [activeselectedChat, setactiveSelectedChat] = useState();
-<<<<<<< Updated upstream
   const [selectedChatId, setSelectedChatId] = useState(() => {
     // Initialize from props or localStorage
     return initialSelectedId || parseInt(localStorage.getItem('selectedChatId')) || null;
   });
-=======
->>>>>>> Stashed changes
 
   useEffect(() => {
     const fetchSessions = async (user_id) => {
@@ -146,36 +143,9 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
   const handleDelete = async (section, index, e, id) => {
     e.stopPropagation();
 
-<<<<<<< Updated upstream
     // Prevent multiple delete confirmations
     if (isDeleteConfirmationOpen) {
       return;
-=======
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/sessions/${id}/`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete the chat session");
-      }
-
-      const chatName = chats[section][index].name;
-
-      // Remove the deleted chat from state
-      setChats((prev) => ({
-        ...prev,
-        [section]: prev[section].filter((_, i) => i !== index),
-      }));
-
-      showToast(`Deleted chat: ${chatName}`);
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      showToast("Failed to delete chat. Please try again.");
->>>>>>> Stashed changes
     }
 
     setIsDeleteConfirmationOpen(true);
@@ -447,7 +417,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
   };
 
   const CreateNewChat = async () => {
-<<<<<<< Updated upstream
     try {
       // Create a temporary ID and add the chat immediately for instant feedback
       const tempId = Date.now();
@@ -506,35 +475,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
     } catch (error) {
       console.error("Error in CreateNewChat:", error);
       toast.error("Failed to create new chat. Please try again.");
-=======
-    console.log("I am Called Umer");
-  
-    try {
-      let Response = await CreateNewChatAPIcall(5, "Call from API");
-  
-      if (!Response || !Response.session_name) {
-        console.error("API call failed or returned invalid data:", Response);
-        return;
-      }
-  
-      const newChat = Response.session_name;
-      const newChatId=Response.id
-  
-      setChats((prevChats) => ({
-        ...prevChats,
-        today: [...prevChats.today, { name: newChat, id: newChatId }], // Add the new chat
-      }));
-  
-      console.log("Chat added successfully:", newChat);
-  
-      // Wait for state update before navigating (optional delay)
-      setTimeout(() => {
-        navigate("/chats/newchat");
-      }, 100); // Small delay to ensure state update
-  
-    } catch (error) {
-      console.error("Error in CreateNewChat:", error);
->>>>>>> Stashed changes
     }
   };
   const renderChatItem = (chat, index, section, id) => {
@@ -638,7 +578,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
       </button>
 
       <div className="sidebar-scroll">
-<<<<<<< Updated upstream
         {isLoading ? (
           <div className="sidebar-loader">
             <HashLoader color="#4f96ff" size={50} />
@@ -656,25 +595,6 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
       ))}
     </ul>
   </div>
-=======
-        {isSidebarOpen && (
-          <>
-           <div className="sidebar-section">
-  {chats?.today?.length > 0 && <h3>Today</h3>}
-  <ul className="chat-list">
-    {chats?.today?.map((chat, index) => (
-      <div
-        key={index}
-        onClick={() => {
-          SelectedChat(chat?.name, chat?.id);
-        }}
-      >
-        {renderChatItem(chat?.name, index, "today", chat?.id)}
-      </div>
-    ))}
-  </ul>
-</div>
->>>>>>> Stashed changes
 
               <div className="sidebar-section">
                 {chats.yesterday.length > 0 && <h3>Yesterday</h3>}
