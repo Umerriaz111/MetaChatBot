@@ -41,6 +41,8 @@
     cursor: pointer;
     transition: all 0.3s ease;
     display: none; /* Hide by default */
+    
+   
 }
 
 /* Show toggle icon only on mobile devices */
