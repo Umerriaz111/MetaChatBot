@@ -1,1 +1,13 @@
-django-cors-headers == 4.4.0
+django
+djangorestframework
+langchain-community
+dj-rest-auth
+django-allauth
+pyjwt
+cryptography
+openai
+django-cors-headers
+pandas
+scrapegraphai
+chromadb
+langchain-ollama
