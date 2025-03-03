@@ -20,10 +20,14 @@ import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 import { IoIosArrowDroprightCircle } from "react-icons/io";
 import { TbLayoutSidebarLeftExpand, TbLayoutSidebarRightExpand } from "react-icons/tb";
 
+<<<<<<< Updated upstream
 
 const BASE_URL = "http://127.0.0.1:8000";
 
 const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
+=======
+const Chatbot = ({ chatName,id }) => {
+>>>>>>> Stashed changes
  
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
