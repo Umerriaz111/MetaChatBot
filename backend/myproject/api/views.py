@@ -22,7 +22,33 @@ from langchain_community.tools.searx_search.tool import SearxSearchResults
 from langchain_community.utilities.searx_search import SearxSearchWrapper
 from . import RAG_Scrapper as rag
 from langchain_community.chat_models import ChatOllama
+from fpdf import FPDF
+from django.http import HttpResponse
 load_dotenv()
+
+def generate_report(documents, file_type='pdf'):
+    data = [{'Title': doc.metadata.get('title', 'N/A'), 'Content': doc.page_content} for doc in documents]
+    df = pd.DataFrame(data)
+    
+    file_path = f"/tmp/chat_session_report.{file_type}"
+    
+    if file_type == 'pdf':
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        
+        for index, row in df.iterrows():
+            pdf.cell(200, 10, txt=row['Title'], ln=True, align='L')
+            pdf.multi_cell(0, 10, txt=row['Content'])
+            pdf.ln(10)
+        
+        pdf.output(file_path)
+    
+    elif file_type == 'excel':
+        df.to_excel(file_path, index=False)
+    
+    return file_path
 
 # User Views
 class UserList(generics.ListCreateAPIView):
@@ -99,8 +125,8 @@ class MessageList(generics.ListCreateAPIView):
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
         message_type = request.GET.get('message_type', 'searching')
 
-        if message_type not in ['searching', 'scraping']:
-            return Response({"message": "Invalid message_type. Must be either 'searching' or 'scraping'"}, status=status.HTTP_400_BAD_REQUEST)
+        if message_type not in ['searching', 'scraping', 'chating']:
+            return Response({"message": "Invalid message_type. Must be either 'searching', 'scraping', or 'chating'"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not query or query == '':
             return Response({"message": "Either Query not sent or Query is empty"})
@@ -117,7 +143,8 @@ class MessageList(generics.ListCreateAPIView):
 
             user_message = query
             chatbot_response = search_results(user_message, number_of_items, engines) if llm_response != 'not safe' else 'Search results are not safe. Please try again.'
-
+            
+            # Save message to DB
             message = Message.objects.create(
                 session=session,
                 user_message=user_message,
@@ -133,7 +160,7 @@ class MessageList(generics.ListCreateAPIView):
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
 
-        else:  # Scraping
+        elif message_type == 'scraping':  # Scraping
             llm_response = assistant2(query)
 
             user_message = query
@@ -173,6 +200,7 @@ class MessageList(generics.ListCreateAPIView):
                     chain = rag.setup_rag_chain(retriever, llm)
 
                     chatbot_response = chain.invoke(query)
+
             else:
                 chatbot_response = 'Search results are not safe. Please try again.'
 
@@ -191,6 +219,43 @@ class MessageList(generics.ListCreateAPIView):
                 "created_at": message.created_at,
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
+
+    elif message_type == 'chating':
+        vector_db = rag.get_or_create_vector_db(session)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
+        retriever = rag.setup_retriever(vector_db, llm)
+        chain = rag.setup_rag_chain(retriever, llm)
+        chatbot_response = chain.invoke(query)
+
+        # Save message to DB
+        message = Message.objects.create(
+            session=session,
+            user_message=user_message,
+            chatbot_response=chatbot_response,
+            message_type=message_type
+        )
+
+        return Response({
+            "id": message.id,
+            "user_message": message.user_message,
+            "chatbot_response": message.chatbot_response,
+            "created_at": message.created_at,
+            "message_type": message.message_type
+        }, status=status.HTTP_201_CREATED)
+
+    elif message_type == 'download':
+        vector_db = rag.get_or_create_vector_db(session)
+        documents = vector_db.get_all_documents()
+        file_type = request.GET.get('file_type', 'pdf')
+        file_path = generate_report(documents, file_type)
+
+        with open(file_path, 'rb') as file:
+            response = HttpResponse(file.read(), content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
+            return response
+        
+    return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
