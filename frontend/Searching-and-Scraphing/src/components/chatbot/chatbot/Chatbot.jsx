@@ -19,6 +19,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FiClipboard, FiCheckCircle } from 'react-icons/fi';
 import { IoIosArrowDroprightCircle } from "react-icons/io";
 import { TbLayoutSidebarLeftExpand, TbLayoutSidebarRightExpand } from "react-icons/tb";
+import { motion } from 'framer-motion';
+import { BiSearchAlt } from 'react-icons/bi';
+import { FaScroll } from 'react-icons/fa';
+import { BsChatDots } from 'react-icons/bs';
+import { FiDownload } from 'react-icons/fi';
 
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -191,7 +196,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
     try {
       const queryParams = new URLSearchParams({
         query: messageText,
-        number_of_items: numResults || 2,
+        number_of_items: numResults,
         engines: Array.from(selectedIcons).join(',') ,
         message_type: selectedOption
       });
@@ -316,6 +321,26 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
     }
   };
 
+  const parseScrapedText = (text) => {
+    try {
+      // Check if text contains numbered list items
+      if (text.includes('\n1.')) {
+        // Split the text into title and items
+        const [title, ...items] = text.split('\n');
+        return {
+          title: title.trim(),
+          items: items
+            .filter(item => item.trim()) // Remove empty lines
+            .map(item => item.trim())
+        };
+      }
+      return text; // Return as is if not in expected format
+    } catch (error) {
+      console.error('Error parsing scraped text:', error);
+      return text;
+    }
+  };
+
   return (
     <div className="chatbot-container">
       {isChangingChat ? (
@@ -363,6 +388,18 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                     >
                       Scraping
                     </div>
+                    <div 
+                      className={`menu-item ${selectedOption === 'chatting' ? 'selected' : ''}`}
+                      onClick={() => handleOptionSelect('chatting')}
+                    >
+                      Chatting
+                    </div>
+                    <div 
+                      className={`menu-item ${selectedOption === 'download' ? 'selected' : ''}`}
+                      onClick={() => handleOptionSelect('download')}
+                    >
+                      Download Scrape Data
+                    </div>
                   </div>
                 )}
               </div>
@@ -391,7 +428,26 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                     {/* Chatbot response */}
                     <div className="chat-message support">
                       <div className="search-results">
-                        {Array.isArray(parsedResponse) ? (
+                        {msg.message_type === 'scraping' ? (
+                          (() => {
+                            const parsedText = parseScrapedText(msg.chatbot_response);
+                            if (typeof parsedText === 'object') {
+                              return (
+                                <div className="scraped-content">
+                                  <h3 className="scraped-title">{parsedText.title}</h3>
+                                  <div className="scraped-items">
+                                    {parsedText.items.map((item, idx) => (
+                                      <div key={idx} className="scraped-item">
+                                        {item}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return <p>{msg.chatbot_response}</p>;
+                          })()
+                        ) : Array.isArray(parsedResponse) ? (
                           parsedResponse.map((result, resultIndex) => (
                             <div key={resultIndex} className="search-result">
                               <div className="result-header">
@@ -614,3 +670,64 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
 };
 
 export default Chatbot;
+
+<style>
+{`
+  .menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .menu-item:hover {
+    background-color: #f5f5f5;
+  }
+
+  .menu-item.selected {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+
+  .menu-dropdown {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .scraped-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .scraped-title {
+    color: #2a91c4;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .scraped-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .scraped-item {
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    transition: transform 0.2s ease;
+  }
+
+  .scraped-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+`}
+</style>
