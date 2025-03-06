@@ -35,5 +35,13 @@ dist-ssr
 .env
 .RAG_Scrapper.py
 
+# Ignore compiled Python files
+backend/myproject/api/__pycache__/
+*.pyc
+
+# Ignore SQLite database file
+backend/myproject/db.sqlite3
+
+
 
 
