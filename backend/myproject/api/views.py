@@ -108,6 +108,11 @@ class MessageList(generics.ListCreateAPIView):
         if not engines or engines == ['']:
             engines = [engine.lower() for engine in 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek'.split(',')]
 
+        print(f"Engines: {engines}")
+        print(f"Query: {query}")
+        print(f"Number of items: {number_of_items}")
+        print(f"Message type: {message_type}")
+
         # Extract session from URL
         session_id = self.kwargs['session_id']
         session = ChatSession.objects.get(id=session_id)
@@ -375,26 +380,33 @@ def search_results(query, number_of_items, engines):
     final_result = []
 
     for engine in engines:
-        pageno = 1
-        result_of_each_engine = []
-        
-        while pageno <= 20:
-            response = websearch(query, engine, pageno)
-            response = response['results']
-            result_of_each_engine.extend(response)
+        engine_results = []  # Store results for the current engine
+        page_number = 1
+
+        while page_number <= 20:
+            response = websearch(query, engine, page_number)
+            current_results = response.get('results', [])
             
-            if response == []:
-                break  # Stop if there are no more results
-            
-            if number_of_items > 0 and len(result_of_each_engine) >= number_of_items:
-                result_of_each_engine = result_of_each_engine[:number_of_items]
+            # Stop if no more results are returned for this engine.
+            if not current_results:
                 break
-            
-            pageno += 1
-        
-        final_result.extend(result_of_each_engine)
+
+            for result in current_results:
+                # Add each result if we haven't reached the engine-specific limit.
+                if number_of_items > 0 and len(engine_results) >= number_of_items:
+                    break
+                engine_results.append(result)
+
+            # If we've reached the limit for this engine, exit the loop.
+            if number_of_items > 0 and len(engine_results) >= number_of_items:
+                break
+
+            page_number += 1
+
+        final_result.extend(engine_results)
 
     return final_result
+
 
 
 @api_view(['GET','POST'])
