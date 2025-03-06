@@ -40,7 +40,7 @@ backend/myproject/api/__pycache__/
 *.pyc
 
 # Ignore SQLite database file
-backend/myproject/db.sqlite3
+db.sqlite3
 
 
 
