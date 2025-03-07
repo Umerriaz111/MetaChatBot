@@ -385,7 +385,10 @@ def search_results(query, number_of_items, engines):
 
         while page_number <= 20:
             response = websearch(query, engine, page_number)
-            current_results = response.get('results', [])
+            if response:
+                current_results = response.get('results', [])
+            else:
+                break
             
             # Stop if no more results are returned for this engine.
             if not current_results:
