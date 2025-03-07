@@ -451,24 +451,33 @@ def search_results(query, number_of_items, engines):
     final_result = []
 
     for engine in engines:
-        pageno = 1
-        result_of_each_engine = []
-        
-        while pageno <= 20:
-            response = websearch(query, engine, pageno)
-            response = response['results']
-            result_of_each_engine.extend(response)
-            
-            if response == []:
-                break  # Stop if there are no more results
-            
-            if number_of_items > 0 and len(result_of_each_engine) >= number_of_items:
-                result_of_each_engine = result_of_each_engine[:number_of_items]
+        engine_results = []  # Store results for the current engine
+        page_number = 1
+
+        while page_number <= 20:
+            response = websearch(query, engine, page_number)
+            if response:
+                current_results = response.get('results', [])
+            else:
                 break
             
-            pageno += 1
-        
-        final_result.extend(result_of_each_engine)
+            # Stop if no more results are returned for this engine.
+            if not current_results:
+                break
+
+            for result in current_results:
+                # Add each result if we haven't reached the engine-specific limit.
+                if number_of_items > 0 and len(engine_results) >= number_of_items:
+                    break
+                engine_results.append(result)
+
+            # If we've reached the limit for this engine, exit the loop.
+            if number_of_items > 0 and len(engine_results) >= number_of_items:
+                break
+
+            page_number += 1
+
+        final_result.extend(engine_results)
 
     return final_result
 
