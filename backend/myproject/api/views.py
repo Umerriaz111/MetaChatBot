@@ -25,7 +25,6 @@ from langchain_community.chat_models import ChatOllama
 from fpdf import FPDF
 from django.http import HttpResponse
 import pandas as pd
-import json
 load_dotenv()
 
 def generate_report(documents, file_type='pdf'):
@@ -175,7 +174,6 @@ class MessageList(generics.ListCreateAPIView):
             llm_response = assistant2(query)
 
             user_message = query
-            print(f'user_message in scrpaing = {user_message}')
             if llm_response != 'not safe':
                 searching_result = search_results(user_message, number_of_items, engines)
                 print(f'searching_results = {searching_result}')
@@ -185,9 +183,7 @@ class MessageList(generics.ListCreateAPIView):
                 all_documents = []
                 for result in searching_result:
                     scraping_result = rag.scrape_data(config, user_message, result['url'])
-                    print(json.dumps(scraping_result, indent=4))
                     scraped_text = scraping_result.get("content", "")
-                    print(f'scraped_text = {scraped_text}')
                     if not scraped_text:
                         continue
                     print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")
