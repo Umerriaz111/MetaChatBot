@@ -256,14 +256,60 @@ class MessageList(generics.ListCreateAPIView):
         elif message_type == 'download':
             vector_db = rag.get_or_create_vector_db(session)
             documents = vector_db.get()
-            print('vdocs = ',documents)
-            file_type = request.GET.get('file_type', 'pdf')
-            file_path = generate_report(documents, file_type)
+            
+            if not documents:
+                return Response({"message": "No data available in vector database"}, status=status.HTTP_404_NOT_FOUND)
 
-            with open(file_path, 'rb') as file:
-                response = HttpResponse(file.read(), content_type='application/octet-stream')
-                response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
-                return response
+            print('vdocs = ', documents)
+
+            # Convert data into a structured prompt for the LLM
+            prompt = f"""
+            You are an AI that generates valid, executable Python code to structure given data into an Excel file with appropriate columns and multiple sheets using the pandas and openpyxl libraries.
+
+            Instructions:
+            - Do not include any markdown formatting (e.g. triple backticks or any code fences) or any commentary; output only the Python code.
+            - Ensure the generated code creates an Excel file named 'abc.xlsx'.
+            - The code should be complete and executable as-is.
+            - The given data is a mix of texts. Some texts describe Pakistani prime ministers and include details such as their names, terms, and other relevant information. Other texts list best football teams.
+            - Your code should:
+                - Parse and structure the Pakistani prime ministers data into one sheet. For example, create columns such as "Name", "Terms", and any other relevant details.
+                - Parse and structure the best football teams data into another sheet. For example, create columns such as "Team" and "Country" (if possible) or any other relevant details.
+                - Dynamically create separate DataFrames for each category and write them to different sheets in the Excel file.
+                
+            The given data is:
+            {documents}
+
+            Examples:
+            If the input text for Pakistani prime ministers is:
+            "The top Pakistani prime ministers in the last 40 years include: 1. **Benazir Bhutto** - served two non-consecutive terms from 1988 to 1990 and 1993 to 1996; 2. **Nawaz Sharif** - served three non-consecutive terms with major periods in 2013 to 2017; ..."
+            Your code should parse this and create a DataFrame with columns like "Name" and "Terms" for that sheet.
+
+            If the input text for football teams is:
+            "The best football teams in the world according to the scraped content are: 1. Liverpool FC (England); 2. Paris Saint-Germain (France); 3. Arsenal (England); ..."
+            Your code should parse this and create a DataFrame with columns like "Team" and "Country" for that sheet.
+
+            Now, generate the Python code that meets these requirements.
+            """
+
+
+
+            try:
+                # Call LLM to generate Python code
+                llm = ChatOpenAI(model="gpt-4o", temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
+                generated_code = llm.predict(prompt)
+
+                # Save the generated code to a file
+                with open("generate_excel.py", "w") as f:
+                    f.write(generated_code)
+
+                exec(generated_code)
+
+                print("Excel file 'abc.xlsx' generated successfully!")
+
+                return Response({"message": "Excel file 'abc.xlsx' generated successfully!"}, status=status.HTTP_200_OK)
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -478,7 +524,7 @@ def search_results(query, number_of_items, engines):
             page_number += 1
 
         final_result.extend(engine_results)
-
+    print(f'final_result = {final_result}')
     return final_result
 
 
