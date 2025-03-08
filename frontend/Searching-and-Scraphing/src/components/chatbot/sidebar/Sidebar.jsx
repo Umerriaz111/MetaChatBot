@@ -204,6 +204,11 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
                     }
                 }
             );
+           setTimeout(() => {
+            navigate('/');
+           }, 3000);
+
+
         } catch (error) {
             console.error("Error deleting chat:", error);
             toast.error(
@@ -394,6 +399,10 @@ const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isV
           setEditingChat(null);
           setEditedName("");
           showToast(`Renamed chat from ${chats[section][index].name} -> ${editedName}`, "success");
+          setTimeout(() => {
+            navigate(`/chats/${encodeURIComponent(editedName)}`);
+          }, 2500);
+          
         } else {
           showToast(`Failed to rename chat.`, "error");
         }

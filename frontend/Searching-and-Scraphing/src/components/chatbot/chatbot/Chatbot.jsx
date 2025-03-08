@@ -24,6 +24,7 @@ import { BiSearchAlt } from 'react-icons/bi';
 import { FaScroll } from 'react-icons/fa';
 import { BsChatDots } from 'react-icons/bs';
 import { FiDownload } from 'react-icons/fi';
+import ReactDOMServer from 'react-dom/server';
 
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -85,26 +86,29 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
   }, [chatName, id]); // Add id to dependency array
 
   const handleIconClick = (iconName) => {
+    // Dismiss any existing toasts first
     toast.dismiss();
+    
     setSelectedIcons(prev => {
       const newSelection = new Set(prev);
-      if (newSelection.has(iconName)) {
+      const wasSelected = newSelection.has(iconName);
+      
+      if (wasSelected) {
         newSelection.delete(iconName);
-        toast.info(`${iconName} has been unselected`, {
-          position: "top-right",
-          autoClose: 2000,
-          theme: "colored",
-          icon: "🔴"
-        });
       } else {
         newSelection.add(iconName);
-        toast.success(`${iconName} has been selected`, {
-          position: "top-right",
-          autoClose: 2000,
-          theme: "colored",
-          icon: "✨"
-        });
       }
+
+      // Show a single toast with the appropriate message
+      toast(wasSelected ? `${iconName} has been unselected` : `${iconName} has been selected`, {
+        position: "top-right",
+        autoClose: 2000,
+        theme: "colored",
+        type: wasSelected ? "info" : "success",
+        icon: wasSelected ? "🔴" : "✨",
+        toastId: `icon-selection-${iconName}`, // Prevent duplicate toasts
+      });
+
       return newSelection;
     });
   };
@@ -255,11 +259,186 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
   const handleOptionSelect = (option) => {
     setSelectedOption(option);
     setMenuOpen(false);
-    toast.success(`${option} mode selected`, {
-      position: "top-right",
-      autoClose: 2000,
-      theme: "colored",
-    });
+    
+    // Get the icon and message based on the selected option
+    let IconComponent;
+    let iconColor;
+    let modeMessage;
+    let particleColors;
+    
+    switch(option) {
+      case 'searching':
+        IconComponent = BiSearchAlt;
+        iconColor = '#4a90e2';
+        modeMessage = 'Search Mode Activated';
+        particleColors = ['#4a90e2', '#357abd', '#64b5f6'];
+        break;
+      case 'scraping':
+        IconComponent = FaScroll;
+        iconColor = '#43a047';
+        modeMessage = 'Web Scraping Initialized';
+        particleColors = ['#43a047', '#2e7d32', '#66bb6a'];
+        break;
+      case 'chatting':
+        IconComponent = BsChatDots;
+        iconColor = '#9c27b0';
+        modeMessage = 'You are Now Chatting with Scraph Data';
+        particleColors = ['#9c27b0', '#7b1fa2', '#ba68c8'];
+        break;
+      case 'download':
+        IconComponent = FiDownload;
+        iconColor = '#ff9800';
+        modeMessage = 'Downloading Scraped Data, Wait for a While';
+        particleColors = ['#ff9800', '#f57c00', '#ffb74d'];
+        break;
+      default:
+        IconComponent = BiSearchAlt;
+        iconColor = '#4a90e2';
+        modeMessage = 'Search Mode Activated';
+        particleColors = ['#4a90e2', '#357abd', '#64b5f6'];
+    }
+
+    // Create the animated element
+    const animatedElement = document.createElement('div');
+    animatedElement.className = 'mode-change-indicator';
+    document.body.appendChild(animatedElement);
+
+    // Create the icon container with enhanced 3D effect
+    const iconContainer = document.createElement('div');
+    iconContainer.className = 'selected-mode-icon';
+    
+    // Create SVG element for the icon with glowing effect
+    const svgString = ReactDOMServer.renderToString(
+      <IconComponent style={{ 
+        fontSize: '64px', 
+        color: iconColor,
+        filter: `drop-shadow(0 0 20px ${iconColor})`
+      }} />
+    );
+    iconContainer.innerHTML = svgString;
+    
+    // Create the mode title with enhanced styling
+    const modeTitle = document.createElement('div');
+    modeTitle.className = 'mode-title';
+    modeTitle.innerHTML = `
+      <div class="mode-title-main">${option.charAt(0).toUpperCase() + option.slice(1)} Mode</div>
+      <div class="mode-title-sub">${modeMessage}</div>
+    `;
+    
+    // Create enhanced particles container
+    const particlesContainer = document.createElement('div');
+    particlesContainer.className = 'particles';
+    
+    // Create more particles with enhanced effects
+    for (let i = 0; i < 36; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      
+      // Enhanced particle properties
+      const size = Math.random() * 6 + 2;
+      const delay = Math.random() * 0.8;
+      const rotation = i * 14;
+      const distance = Math.random() * 100 + 150;
+      const color = particleColors[i % particleColors.length];
+      
+      particle.style.setProperty('--size', `${size}px`);
+      particle.style.setProperty('--delay', `${delay}s`);
+      particle.style.setProperty('--rotation', `${rotation}deg`);
+      particle.style.setProperty('--distance', `${distance}px`);
+      particle.style.setProperty('--color', color);
+      particle.style.background = color;
+      
+      const initialZ = Math.random() * 200 - 100;
+      particle.style.transform = `translateZ(${initialZ}px)`;
+      
+      particlesContainer.appendChild(particle);
+    }
+
+    // Create enhanced ripple container
+    const rippleContainer = document.createElement('div');
+    rippleContainer.className = 'ripple-container';
+    
+    // Create more ripples with enhanced effects
+    for (let i = 0; i < 8; i++) {
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      ripple.style.setProperty('--delay', `${i * 0.15}s`);
+      ripple.style.setProperty('--scale', `${1 + i * 0.4}`);
+      ripple.style.borderColor = iconColor;
+      rippleContainer.appendChild(ripple);
+    }
+
+    // Enhanced mouse move event for 3D effect
+    const handleMouseMove = (e) => {
+      const rect = animatedElement.getBoundingClientRect();
+      const x = (e.clientX - rect.left - rect.width / 2) / 10;
+      const y = (e.clientY - rect.top - rect.height / 2) / 10;
+      
+      const rotateX = y * -1;
+      const rotateY = x;
+      
+      animatedElement.style.transform = `
+        translate(-50%, -50%)
+        rotateX(${rotateX}deg)
+        rotateY(${rotateY}deg)
+        scale3d(1.05, 1.05, 1.05)
+      `;
+      
+      iconContainer.style.transform = `
+        translateZ(60px)
+        rotateX(${rotateX * 1.2}deg)
+        rotateY(${rotateY * 1.2}deg)
+        scale3d(1.1, 1.1, 1.1)
+      `;
+      
+      modeTitle.style.transform = `
+        translateZ(40px)
+        rotateX(${rotateX * 0.8}deg)
+        rotateY(${rotateY * 0.8}deg)
+      `;
+    };
+
+    // Enhanced mouse enter/leave events
+    const handleMouseEnter = () => {
+      animatedElement.style.transition = 'none';
+      iconContainer.style.transition = 'none';
+      modeTitle.style.transition = 'none';
+    };
+
+    const handleMouseLeave = () => {
+      animatedElement.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      iconContainer.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      modeTitle.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      
+      animatedElement.style.transform = 'translate(-50%, -50%) scale3d(1, 1, 1)';
+      iconContainer.style.transform = 'translateZ(40px) scale3d(1, 1, 1)';
+      modeTitle.style.transform = 'translateZ(20px)';
+    };
+
+    // Add event listeners
+    animatedElement.addEventListener('mousemove', handleMouseMove);
+    animatedElement.addEventListener('mouseenter', handleMouseEnter);
+    animatedElement.addEventListener('mouseleave', handleMouseLeave);
+
+    // Append all elements
+    animatedElement.appendChild(rippleContainer);
+    animatedElement.appendChild(particlesContainer);
+    animatedElement.appendChild(iconContainer);
+    animatedElement.appendChild(modeTitle);
+
+    // Enhanced removal animation
+    setTimeout(() => {
+      animatedElement.classList.add('fade-out');
+      
+      // Remove event listeners
+      animatedElement.removeEventListener('mousemove', handleMouseMove);
+      animatedElement.removeEventListener('mouseenter', handleMouseEnter);
+      animatedElement.removeEventListener('mouseleave', handleMouseLeave);
+      
+      setTimeout(() => {
+        document.body.removeChild(animatedElement);
+      }, 1000);
+    }, 3000);
   };
 
   const handleNumResultsChange = (e) => {
@@ -289,28 +468,71 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
           const parsed = JSON.parse(response);
           return parsed;
         } catch (e) {
-          // If direct JSON parse fails, try to extract multiple results from string
-          const results = [];
+          // Check if the string represents an array of JSON objects
+          if (response.trim().startsWith('[{') && response.trim().endsWith('}]')) {
+            try {
+              // Try to parse it with a more permissive approach - replace single quotes with double quotes
+              const jsonString = response.replace(/'/g, '"');
+              const parsed = JSON.parse(jsonString);
+              return parsed;
+            } catch (jsonError) {
+              console.log("Failed to parse as JSON array:", jsonError);
+            }
+          }
           
-          // Match URL, title, content and engine patterns
-          const matches = response.matchAll(/['"](url|title|content|engine)['"]:\s*['"](.*?)['"]/g);
+          // If JSON parsing fails, try to extract fields using regex
+          const results = [];
           let currentResult = {};
           
-          for (const match of matches) {
-            const [_, key, value] = match;
+          // Match all field-value pairs in the format 'field': 'value' or "field": "value"
+          const fieldRegex = /['"]([^'"]+)['"]\s*:\s*['"](.*?)['"](?=\s*,|\s*})/g;
+          let match;
+          
+          // Extract the objects from the string
+          const objectsRegex = /{([^{}]*)}/g;
+          let objectMatch;
+          
+          while ((objectMatch = objectsRegex.exec(response)) !== null) {
+            const objectContent = objectMatch[0];
+            currentResult = {};
             
-            if (key === 'url' && Object.keys(currentResult).length > 0) {
-              results.push(currentResult);
-              currentResult = {};
+            // Reset the lastIndex to ensure we start from the beginning
+            fieldRegex.lastIndex = 0;
+            
+            // Extract all fields from this object
+            while ((match = fieldRegex.exec(objectContent)) !== null) {
+              const [_, key, value] = match;
+              currentResult[key] = value;
             }
             
-            currentResult[key] = value;
+            if (Object.keys(currentResult).length > 0) {
+              results.push(currentResult);
+            }
           }
           
-          if (Object.keys(currentResult).length > 0) {
-            results.push(currentResult);
+          // If we couldn't extract objects, fall back to the old method
+          if (results.length === 0) {
+            // Match all field-value pairs throughout the string
+            const allFieldsRegex = /['"]([^'"]+)['"]\s*:\s*['"](.*?)['"](?=\s*,|\s*})/g;
+            currentResult = {};
+            
+            while ((match = allFieldsRegex.exec(response)) !== null) {
+              const [_, key, value] = match;
+              
+              // Start a new result object when we encounter a new 'url' field
+              if (key === 'url' && Object.keys(currentResult).length > 0) {
+                results.push({...currentResult});
+                currentResult = {};
+              }
+              
+              currentResult[key] = value;
+            }
+            
+            if (Object.keys(currentResult).length > 0) {
+              results.push({...currentResult});
+            }
           }
-
+          
           return results.length > 0 ? results : response;
         }
       }
@@ -358,7 +580,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                   className="sidebar-toggle-icon"
                 />
               )}
-              <img src="./2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
+              <img src="../chats/2_FINAL_SEE_HEAR_SPEAK_IN_COLOR_ORIGINAL_COLOR.svg" alt="Logo" className="logo" />
             </div>
             <h1>Searching and Scraping Bot</h1>
             <div className="header-right">
@@ -380,24 +602,28 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                       className={`menu-item ${selectedOption === 'searching' ? 'selected' : ''}`}
                       onClick={() => handleOptionSelect('searching')}
                     >
+                      <BiSearchAlt className="menu-icon" />
                       Searching
                     </div>
                     <div 
                       className={`menu-item ${selectedOption === 'scraping' ? 'selected' : ''}`}
                       onClick={() => handleOptionSelect('scraping')}
                     >
+                      <FaScroll className="menu-icon" />
                       Scraping
                     </div>
                     <div 
                       className={`menu-item ${selectedOption === 'chatting' ? 'selected' : ''}`}
                       onClick={() => handleOptionSelect('chatting')}
                     >
+                      <BsChatDots className="menu-icon" />
                       Chatting
                     </div>
                     <div 
                       className={`menu-item ${selectedOption === 'download' ? 'selected' : ''}`}
                       onClick={() => handleOptionSelect('download')}
                     >
+                      <FiDownload className="menu-icon" />
                       Download Scrape Data
                     </div>
                   </div>
@@ -587,7 +813,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
               />
              
               <button className="send-button" onClick={sendMessage}>
-                <img src="./paper-plane.png" alt="Send" />
+                <img src="../chats/paper-plane.png" alt="Send" />
               </button>
             </div>
             <div className="search-icon">
