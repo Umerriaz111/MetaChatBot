@@ -184,9 +184,11 @@ class MessageList(generics.ListCreateAPIView):
                 for result in searching_result:
                     scraping_result = rag.scrape_data(config, user_message, result['url'])
                     scraped_text = scraping_result.get("content", "")
+                    if isinstance(scraped_text, dict):
+                        scraped_text = str(scraped_text)  # Convert to string if it's a dictionary
                     if not scraped_text:
                         continue
-                    print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")
+                    print(f"Scraped text from {result['url']} = {scraped_text}...")
 
                     document = rag.convert_string_to_document(scraped_text)
                     all_documents.append(document)
@@ -256,31 +258,34 @@ class MessageList(generics.ListCreateAPIView):
         elif message_type == 'download':
             vector_db = rag.get_or_create_vector_db(session)
             documents = vector_db.get()
-            
-            if not documents:
+
+            if not documents or not documents.get("documents"):
                 return Response({"message": "No data available in vector database"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Extract only valid text data (removing 'NA' values)
+            documents = [doc for doc in documents["documents"] if doc != "NA"]
+
+            if not documents:
+                return Response({"message": "No valid documents found"}, status=status.HTTP_404_NOT_FOUND)
 
             print('vdocs = ', documents)
 
             # Convert data into a structured prompt for the LLM
             prompt = f"""
-            You are an AI that generates valid, executable Python code to structure given data into an Excel file with appropriate columns and multiple sheets using the pandas and openpyxl libraries.
+            You are an AI that generates valid, executable Python code by structure given data into an Excel file with appropriate columns and sheets.
 
             Instructions:
+            - Start by structuring data into appropriate sheets and columns.
+            - Dynamically create separate DataFrames for each category and write them to different sheets in the Excel file.
             - Do not include any markdown formatting (e.g. triple backticks or any code fences) or any commentary; output only the Python code.
             - Ensure the generated code creates an Excel file named 'abc.xlsx'.
             - The code should be complete and executable as-is.
-            - The given data is a mix of texts. Some texts describe Pakistani prime ministers and include details such as their names, terms, and other relevant information. Other texts list best football teams.
-            - Your code should:
-                - Parse and structure the Pakistani prime ministers data into one sheet. For example, create columns such as "Name", "Terms", and any other relevant details.
-                - Parse and structure the best football teams data into another sheet. For example, create columns such as "Team" and "Country" (if possible) or any other relevant details.
-                - Dynamically create separate DataFrames for each category and write them to different sheets in the Excel file.
+            
                 
             The given data is:
             {documents}
 
             Examples:
-            If the input text for Pakistani prime ministers is:
             "The top Pakistani prime ministers in the last 40 years include: 1. **Benazir Bhutto** - served two non-consecutive terms from 1988 to 1990 and 1993 to 1996; 2. **Nawaz Sharif** - served three non-consecutive terms with major periods in 2013 to 2017; ..."
             Your code should parse this and create a DataFrame with columns like "Name" and "Terms" for that sheet.
 
