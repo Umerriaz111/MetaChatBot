@@ -22,41 +22,42 @@ from langchain_community.tools.searx_search.tool import SearxSearchResults
 from langchain_community.utilities.searx_search import SearxSearchWrapper
 from . import RAG_Scrapper as rag
 from langchain_community.chat_models import ChatOllama
-from fpdf import FPDF
+# from fpdf import FPDF
 from django.http import HttpResponse
 import pandas as pd
+from django.http import FileResponse
 load_dotenv()
 
-def generate_report(documents, file_type='pdf'):
-    data = [
-        {
-            'Title': doc_meta.get('title', 'N/A') if doc_meta else 'N/A',  
-            'Content': doc_content
-        }
-        for doc_content, doc_meta in zip(documents.get('documents', []), documents.get('metadatas', []))
-    ]
+# def generate_report(documents, file_type='pdf'):
+#     data = [
+#         {
+#             'Title': doc_meta.get('title', 'N/A') if doc_meta else 'N/A',  
+#             'Content': doc_content
+#         }
+#         for doc_content, doc_meta in zip(documents.get('documents', []), documents.get('metadatas', []))
+#     ]
 
-    df = pd.DataFrame(data)
+#     df = pd.DataFrame(data)
     
-    file_path = f"/tmp/chat_session_report.{file_type}"
+#     file_path = f"/tmp/chat_session_report.{file_type}"
     
-    if file_type == 'pdf':
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+#     if file_type == 'pdf':
+#         pdf = FPDF()
+#         pdf.set_auto_page_break(auto=True, margin=15)
+#         pdf.add_page()
+#         pdf.set_font("Arial", size=12)
         
-        for index, row in df.iterrows():
-            pdf.cell(200, 10, txt=row['Title'], ln=True, align='L')
-            pdf.multi_cell(0, 10, txt=row['Content'])
-            pdf.ln(10)
+#         for index, row in df.iterrows():
+#             pdf.cell(200, 10, txt=row['Title'], ln=True, align='L')
+#             pdf.multi_cell(0, 10, txt=row['Content'])
+#             pdf.ln(10)
         
-        pdf.output(file_path)
+#         pdf.output(file_path)
     
-    elif file_type == 'excel':
-        df.to_excel(file_path, index=False)
+#     elif file_type == 'excel':
+#         df.to_excel(file_path, index=False)
     
-    return file_path
+#     return file_path
 
 
 # User Views
@@ -134,8 +135,8 @@ class MessageList(generics.ListCreateAPIView):
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
         message_type = request.GET.get('message_type', 'searching')
 
-        if message_type not in ['searching', 'scraping', 'chating','download']:
-            return Response({"message": "Invalid message_type. Must be either 'searching', 'scraping', or 'chating'"}, status=status.HTTP_400_BAD_REQUEST)
+        if message_type not in ['searching', 'scraping', 'chatting','download']:
+            return Response({"message": "Invalid message_type. Must be either 'searching', 'scraping', or 'chatting'"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not query or query == '':
             return Response({"message": "Either Query not sent or Query is empty"})
@@ -237,7 +238,7 @@ class MessageList(generics.ListCreateAPIView):
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
 
-        elif message_type == 'chating':
+        elif message_type == 'chatting':
             vector_db = rag.get_or_create_vector_db(session)
             llm = ChatOpenAI(model="gpt-4o", temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
             retriever = rag.setup_retriever(vector_db, llm)
@@ -261,6 +262,15 @@ class MessageList(generics.ListCreateAPIView):
             }, status=status.HTTP_201_CREATED)
 
         elif message_type == 'download':
+            file_path = 'abc.xlsx'
+            if os.path.exists(file_path):
+                # If it exists, delete the file
+                os.remove(file_path)
+                print(f'{file_path} has been deleted.')
+            else:
+                # If it doesn't exist, continue
+                print(f'{file_path} does not exist. Continuing...')
+            
             vector_db = rag.get_or_create_vector_db(session)
             documents = vector_db.get()
 
@@ -314,9 +324,18 @@ class MessageList(generics.ListCreateAPIView):
 
                 exec(generated_code)
 
-                print("Excel file 'abc.xlsx' generated successfully!")
+                # print("Excel file 'abc.xlsx' generated successfully!")
 
-                return Response({"message": "Excel file 'abc.xlsx' generated successfully!"}, status=status.HTTP_200_OK)
+                # Check if the file was generated
+                if os.path.exists(file_path):
+                    print("Excel file 'abc.xlsx' generated successfully!")
+
+                    # Return the file as a download response
+                    response = FileResponse(open(file_path, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    response['Content-Disposition'] = 'attachment; filename="abc.xlsx"'
+                    return response
+                else:
+                    return Response({"error": "Failed to generate the Excel file."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

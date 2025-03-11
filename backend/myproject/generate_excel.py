@@ -1,28 +1,33 @@
 import pandas as pd
 
-# Structuring the data into separate lists
-professions = [
-    {"Profession": "Physician", "Average Salary Range": "$171,285 to $282,496"},
-    {"Profession": "Solar Sales Representative", "Average Salary Range": "$90,510 to $121,504"},
-    {"Profession": "Medical Director", "Average Salary Range": "$302,490 to $363,214"},
-    {"Profession": "Dentist", "Average Salary Range": "$175,292 to $220,861"},
-    {"Profession": "Psychiatrist", "Average Salary Range": "$242,206 to $296,048"},
-    {"Profession": "Principal Software Engineer", "Average Salary Range": "$119,335 to $142,721"},
-    {"Profession": "Outside Sales Representative", "Average Salary Range": "$90,833 to $122,099"},
-    {"Profession": "Chief Financial Officer (CFO)", "Average Salary Range": "$338,470 to $579,175"},
-    {"Profession": "Veterinarian Radiologist", "Average Salary Range": "$160,000 to $287,000"},
-    {"Profession": "Endodontist", "Average Salary Range": "$177,156 to $223,078"}
+# Data for football players and their goals
+football_data = [
+    {"Rank": 1, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2011/12", "Goals": 73},
+    {"Rank": 2, "Player": "Ferenc Deak", "Team": "Szentlorinci", "Season": "1945/46", "Goals": 66},
+    {"Rank": 2, "Player": "Gerd Muller", "Team": "Bayern Munich", "Season": "1972/73", "Goals": 66},
+    {"Rank": 4, "Player": "Dixie Dean", "Team": "Everton", "Season": "1927/28", "Goals": 63},
+    {"Rank": 5, "Player": "Cristiano Ronaldo", "Team": "Real Madrid", "Season": "2014/15", "Goals": 61},
+    {"Rank": 6, "Player": "Cristiano Ronaldo", "Team": "Real Madrid", "Season": "2011/12", "Goals": 60},
+    {"Rank": 6, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2012/13", "Goals": 60},
+    {"Rank": 8, "Player": "Ferenc Deak", "Team": "Ferencvaros", "Season": "1948/49", "Goals": 59},
+    {"Rank": 8, "Player": "Luis Suarez", "Team": "Barcelona", "Season": "2015/16", "Goals": 59},
+    {"Rank": 10, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2014/15", "Goals": 58}
 ]
 
-football = [
-    {"Player": "Lionel Messi", "Goals": 73, "Season": "2011-12"}
+# Data for cricket players and their runs
+cricket_data = [
+    {"Rank": 1, "Player": "KC Sangakkara", "Country": "SL", "Runs": 2868, "Year": 2013},
+    {"Rank": 2, "Player": "RT Ponting", "Country": "AUS/ICC", "Runs": 2833, "Year": 2005},
+    {"Rank": 3, "Player": "V Kohli", "Country": "IND", "Runs": 2818, "Year": 2017},
+    {"Rank": 4, "Player": "V Kohli", "Country": "IND", "Runs": 2735, "Year": 2018},
+    {"Rank": 5, "Player": "KS Williamson", "Country": "NZ", "Runs": 2692, "Year": 2015}
 ]
 
-# Creating DataFrames
-df_professions = pd.DataFrame(professions)
-df_football = pd.DataFrame(football)
+# Create dataframes
+football_df = pd.DataFrame(football_data)
+cricket_df = pd.DataFrame(cricket_data)
 
-# Writing to Excel with separate sheets
+# Write dataframes to separate sheets in an Excel file
 with pd.ExcelWriter('abc.xlsx') as writer:
-    df_professions.to_excel(writer, sheet_name='Professions', index=False)
-    df_football.to_excel(writer, sheet_name='Football', index=False)
+    football_df.to_excel(writer, sheet_name='Football Goals', index=False)
+    cricket_df.to_excel(writer, sheet_name='Cricket Runs', index=False)
