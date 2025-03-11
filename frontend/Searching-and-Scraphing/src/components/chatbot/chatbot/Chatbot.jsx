@@ -585,7 +585,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
             <h1>Searching and Scraping Bot</h1>
             <div className="header-right">
               {showSidebar && (
-                <TbLayoutSidebarRightExpand 
+                <TbLayoutSidebarLeftExpand 
                   size={26}
                   onClick={onToggleSidebar}
                   className="sidebar-toggle-icon sidebar-visible"
