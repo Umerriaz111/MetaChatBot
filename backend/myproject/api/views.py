@@ -22,7 +22,42 @@ from langchain_community.tools.searx_search.tool import SearxSearchResults
 from langchain_community.utilities.searx_search import SearxSearchWrapper
 from . import RAG_Scrapper as rag
 from langchain_community.chat_models import ChatOllama
+from fpdf import FPDF
+from django.http import HttpResponse
+import pandas as pd
 load_dotenv()
+
+def generate_report(documents, file_type='pdf'):
+    data = [
+        {
+            'Title': doc_meta.get('title', 'N/A') if doc_meta else 'N/A',  
+            'Content': doc_content
+        }
+        for doc_content, doc_meta in zip(documents.get('documents', []), documents.get('metadatas', []))
+    ]
+
+    df = pd.DataFrame(data)
+    
+    file_path = f"/tmp/chat_session_report.{file_type}"
+    
+    if file_type == 'pdf':
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        
+        for index, row in df.iterrows():
+            pdf.cell(200, 10, txt=row['Title'], ln=True, align='L')
+            pdf.multi_cell(0, 10, txt=row['Content'])
+            pdf.ln(10)
+        
+        pdf.output(file_path)
+    
+    elif file_type == 'excel':
+        df.to_excel(file_path, index=False)
+    
+    return file_path
+
 
 # User Views
 class UserList(generics.ListCreateAPIView):
@@ -99,8 +134,8 @@ class MessageList(generics.ListCreateAPIView):
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
         message_type = request.GET.get('message_type', 'searching')
 
-        if message_type not in ['searching', 'scraping']:
-            return Response({"message": "Invalid message_type. Must be either 'searching' or 'scraping'"}, status=status.HTTP_400_BAD_REQUEST)
+        if message_type not in ['searching', 'scraping', 'chating','download']:
+            return Response({"message": "Invalid message_type. Must be either 'searching', 'scraping', or 'chating'"}, status=status.HTTP_400_BAD_REQUEST)
 
         if not query or query == '':
             return Response({"message": "Either Query not sent or Query is empty"})
@@ -117,12 +152,14 @@ class MessageList(generics.ListCreateAPIView):
         session_id = self.kwargs['session_id']
         session = ChatSession.objects.get(id=session_id)
 
+        user_message = query
         if message_type == 'searching':
             llm_response = assistant2(query)
 
-            user_message = query
+            
             chatbot_response = search_results(user_message, number_of_items, engines) if llm_response != 'not safe' else 'Search results are not safe. Please try again.'
-
+            
+            # Save message to DB
             message = Message.objects.create(
                 session=session,
                 user_message=user_message,
@@ -138,7 +175,7 @@ class MessageList(generics.ListCreateAPIView):
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
 
-        else:  # Scraping
+        elif message_type == 'scraping':  # Scraping
             llm_response = assistant2(query)
 
             user_message = query
@@ -152,9 +189,11 @@ class MessageList(generics.ListCreateAPIView):
                 for result in searching_result:
                     scraping_result = rag.scrape_data(config, user_message, result['url'])
                     scraped_text = scraping_result.get("content", "")
+                    if isinstance(scraped_text, dict):
+                        scraped_text = str(scraped_text)  # Convert to string if it's a dictionary
                     if not scraped_text:
                         continue
-                    print(f"Scraped text from {result['url']} = {scraped_text[:200]}...")
+                    print(f"Scraped text from {result['url']} = {scraped_text}...")
 
                     document = rag.convert_string_to_document(scraped_text)
                     all_documents.append(document)
@@ -178,6 +217,7 @@ class MessageList(generics.ListCreateAPIView):
                     chain = rag.setup_rag_chain(retriever, llm)
 
                     chatbot_response = chain.invoke(query)
+
             else:
                 chatbot_response = 'Search results are not safe. Please try again.'
 
@@ -196,6 +236,93 @@ class MessageList(generics.ListCreateAPIView):
                 "created_at": message.created_at,
                 "message_type": message.message_type
             }, status=status.HTTP_201_CREATED)
+
+        elif message_type == 'chating':
+            vector_db = rag.get_or_create_vector_db(session)
+            llm = ChatOpenAI(model="gpt-4o", temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
+            retriever = rag.setup_retriever(vector_db, llm)
+            chain = rag.setup_rag_chain(retriever, llm)
+            chatbot_response = chain.invoke(query)
+
+            # Save message to DB
+            message = Message.objects.create(
+                session=session,
+                user_message=user_message,
+                chatbot_response=chatbot_response,
+                message_type=message_type
+            )
+
+            return Response({
+                "id": message.id,
+                "user_message": message.user_message,
+                "chatbot_response": message.chatbot_response,
+                "created_at": message.created_at,
+                "message_type": message.message_type
+            }, status=status.HTTP_201_CREATED)
+
+        elif message_type == 'download':
+            vector_db = rag.get_or_create_vector_db(session)
+            documents = vector_db.get()
+
+            if not documents or not documents.get("documents"):
+                return Response({"message": "No data available in vector database"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Extract only valid text data (removing 'NA' values)
+            documents = [doc for doc in documents["documents"] if doc != "NA"]
+
+            if not documents:
+                return Response({"message": "No valid documents found"}, status=status.HTTP_404_NOT_FOUND)
+
+            print('vdocs = ', documents)
+
+            # Convert data into a structured prompt for the LLM
+            prompt = f"""
+            You are an AI that generates valid, executable Python code by structure given data into an Excel file with appropriate columns and sheets.
+
+            Instructions:
+            - Start by structuring data into appropriate sheets and columns.
+            - Dynamically create separate DataFrames for each category and write them to different sheets in the Excel file.
+            - Do not include any markdown formatting (e.g. triple backticks or any code fences) or any commentary; output only the Python code.
+            - Ensure the generated code creates an Excel file named 'abc.xlsx'.
+            - The code should be complete and executable as-is.
+            
+                
+            The given data is:
+            {documents}
+
+            Examples:
+            "The top Pakistani prime ministers in the last 40 years include: 1. **Benazir Bhutto** - served two non-consecutive terms from 1988 to 1990 and 1993 to 1996; 2. **Nawaz Sharif** - served three non-consecutive terms with major periods in 2013 to 2017; ..."
+            Your code should parse this and create a DataFrame with columns like "Name" and "Terms" for that sheet.
+
+            If the input text for football teams is:
+            "The best football teams in the world according to the scraped content are: 1. Liverpool FC (England); 2. Paris Saint-Germain (France); 3. Arsenal (England); ..."
+            Your code should parse this and create a DataFrame with columns like "Team" and "Country" for that sheet.
+
+            Now, generate the Python code that meets these requirements.
+            """
+
+
+
+            try:
+                # Call LLM to generate Python code
+                llm = ChatOpenAI(model="gpt-4o", temperature=0.7, openai_api_key=os.getenv("OPENAI_API_KEY"))
+                generated_code = llm.predict(prompt)
+
+                # Save the generated code to a file
+                with open("generate_excel.py", "w") as f:
+                    f.write(generated_code)
+
+                exec(generated_code)
+
+                print("Excel file 'abc.xlsx' generated successfully!")
+
+                return Response({"message": "Excel file 'abc.xlsx' generated successfully!"}, status=status.HTTP_200_OK)
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -407,7 +534,7 @@ def search_results(query, number_of_items, engines):
             page_number += 1
 
         final_result.extend(engine_results)
-
+    print(f'final_result = {final_result}')
     return final_result
 
 
