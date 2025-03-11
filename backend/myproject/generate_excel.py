@@ -1,33 +1,41 @@
 import pandas as pd
 
-# Data for football players and their goals
-football_data = [
-    {"Rank": 1, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2011/12", "Goals": 73},
-    {"Rank": 2, "Player": "Ferenc Deak", "Team": "Szentlorinci", "Season": "1945/46", "Goals": 66},
-    {"Rank": 2, "Player": "Gerd Muller", "Team": "Bayern Munich", "Season": "1972/73", "Goals": 66},
-    {"Rank": 4, "Player": "Dixie Dean", "Team": "Everton", "Season": "1927/28", "Goals": 63},
-    {"Rank": 5, "Player": "Cristiano Ronaldo", "Team": "Real Madrid", "Season": "2014/15", "Goals": 61},
-    {"Rank": 6, "Player": "Cristiano Ronaldo", "Team": "Real Madrid", "Season": "2011/12", "Goals": 60},
-    {"Rank": 6, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2012/13", "Goals": 60},
-    {"Rank": 8, "Player": "Ferenc Deak", "Team": "Ferencvaros", "Season": "1948/49", "Goals": 59},
-    {"Rank": 8, "Player": "Luis Suarez", "Team": "Barcelona", "Season": "2015/16", "Goals": 59},
-    {"Rank": 10, "Player": "Lionel Messi", "Team": "Barcelona", "Season": "2014/15", "Goals": 58}
+# Data
+data = [
+    'The country with the most rivers in the world is Russia, which has over 36 major rivers. Other countries with significant numbers of rivers include Brazil with around 24 major rivers and Canada with approximately 12 major rivers.',
+    'Brazil has the most rivers in the world by a significant margin, primarily due to its Amazon River system, which has over 1,100 tributaries. Other countries with extensive river networks include Russia, Canada, China, and the United States.',
+    'The country with the most rivers in the world is Russia, which has over 36 major rivers. Other countries with significant numbers of rivers include Brazil with around 24 major rivers and Canada with approximately 12 major rivers.',
+    'Brazil has the most rivers in the world by a significant margin, primarily due to its Amazon River system, which has over 1,100 tributaries. Other countries with extensive river networks include Russia, Canada, China, and the United States.',
+    "The top 5 players with the most Ballon d'Or wins as of 2024 are: 1. Lionel Messi - 8 awards, 2. Cristiano Ronaldo - 5 awards, 3. Michel Platini - 3 awards, 4. Johann Cruyff - 3 awards, 5. Marco van Basten - 3 awards.",
+    "The top 5 players with the most Ballon d'Or awards are: 1. Lionel Messi - 8 times, 2. Cristiano Ronaldo - 5 times, 3. Michel Platini - 3 times, 4. Johan Cruyff - 3 times.",
+    "The top 5 players with the most Ballon d'Or awards as of 2024 are: 1. Lionel Messi - 8 awards, 2. Cristiano Ronaldo - 5 awards, 3. Michel Platini - 3 awards, 4. Johann Cruyff - 3 awards, 5. Marco van Basten - 3 awards.",
+    "The top 5 players with the most Ballon d'Or awards are: 1. Lionel Messi - 8 wins (2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023) 2. Cristiano Ronaldo - 5 wins (2008, 2013, 2014, 2016, 2017) 3. Michel Platini - 3 wins (1983, 1984, 1985) 4. Johan Cruyff - 3 wins (1971, 1973, 1974) 5. Marco van Basten - 3 wins (1988, 1989, 1992)"
 ]
 
-# Data for cricket players and their runs
-cricket_data = [
-    {"Rank": 1, "Player": "KC Sangakkara", "Country": "SL", "Runs": 2868, "Year": 2013},
-    {"Rank": 2, "Player": "RT Ponting", "Country": "AUS/ICC", "Runs": 2833, "Year": 2005},
-    {"Rank": 3, "Player": "V Kohli", "Country": "IND", "Runs": 2818, "Year": 2017},
-    {"Rank": 4, "Player": "V Kohli", "Country": "IND", "Runs": 2735, "Year": 2018},
-    {"Rank": 5, "Player": "KS Williamson", "Country": "NZ", "Runs": 2692, "Year": 2015}
-]
+# Extract river data
+river_data = {
+    'Country': ['Russia', 'Brazil', 'Canada', 'China', 'United States'],
+    'Major Rivers': [36, 24, 12, 'Extensive', 'Extensive']
+}
 
-# Create dataframes
-football_df = pd.DataFrame(football_data)
-cricket_df = pd.DataFrame(cricket_data)
+# Extract Ballon d'Or data
+ballon_dor_data = {
+    'Player': ['Lionel Messi', 'Cristiano Ronaldo', 'Michel Platini', 'Johann Cruyff', 'Marco van Basten'],
+    'Awards': [8, 5, 3, 3, 3],
+    'Years': [
+        '2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023',
+        '2008, 2013, 2014, 2016, 2017',
+        '1983, 1984, 1985',
+        '1971, 1973, 1974',
+        '1988, 1989, 1992'
+    ]
+}
 
-# Write dataframes to separate sheets in an Excel file
+# Create DataFrames
+river_df = pd.DataFrame(river_data)
+ballon_dor_df = pd.DataFrame(ballon_dor_data)
+
+# Write data to Excel
 with pd.ExcelWriter('abc.xlsx') as writer:
-    football_df.to_excel(writer, sheet_name='Football Goals', index=False)
-    cricket_df.to_excel(writer, sheet_name='Cricket Runs', index=False)
+    river_df.to_excel(writer, sheet_name='Rivers', index=False)
+    ballon_dor_df.to_excel(writer, sheet_name='Ballon dOr', index=False)
