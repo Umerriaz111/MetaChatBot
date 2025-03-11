@@ -1,7 +1,7 @@
 import React from 'react'
 import Sidebar from '../sidebar/Sidebar'
 import Chatbot from '../chatbot/Chatbot'
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 const SidebarandHome = () => {
@@ -32,15 +32,27 @@ const SidebarandHome = () => {
   };
 
   const { chat } = useParams();
-  const decodedChatName = decodeURIComponent(chat);
+  const location = useLocation();
+  const decodedChatName = chat ? decodeURIComponent(chat) : null;
 
-  // Update selected chat name when URL changes
+  // Update selected chat when URL changes
   useEffect(() => {
-    if (decodedChatName && decodedChatName !== "newchat") {
+    if (location.pathname === '/') {
+      
+      setSelectedChatId(null);
+      setSelectedChatName(null);
+      localStorage.removeItem('selectedChatId');
+      localStorage.removeItem('selectedChatName');
+      
+      
+    
+      
+    }
+     if (decodedChatName && decodedChatName !== "newchat") {
       setSelectedChatName(decodedChatName);
       localStorage.setItem('selectedChatName', decodedChatName);
     }
-  }, [decodedChatName]);
+  }, [decodedChatName, location.pathname]);
 
   return (
     <>

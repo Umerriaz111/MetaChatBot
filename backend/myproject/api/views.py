@@ -134,6 +134,11 @@ class MessageList(generics.ListCreateAPIView):
         number_of_items = int(request.GET.get('number_of_items', 0))
         engines = [engine.lower() for engine in request.GET.get('engines', 'google,duckduckgo,yahoo,bing,wikipedia,github,yandex,ecosia,mojeek').split(',')]
         message_type = request.GET.get('message_type', 'searching')
+        
+        print(f'message_type = {message_type}')
+        print(f'query = {query}')
+        print(f'number_of_items = {number_of_items}')
+        print(f'engines = {engines}')
 
         if message_type not in ['searching', 'scraping', 'chatting','download']:
             return Response({"message": "Invalid message_type. Must be either 'searching', 'scraping', or 'chatting'"}, status=status.HTTP_400_BAD_REQUEST)
