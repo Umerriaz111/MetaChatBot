@@ -13,7 +13,7 @@
     z-index: 1000;
     border-right: 1px solid rgba(74, 144, 226, 0.1);
     box-shadow: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
     margin: 0;
     padding: 0;
 }
@@ -435,11 +435,12 @@
 /* Responsive Design */
 @media (min-width: 1441px) {
     .sidebar {
-        width: 320px;
+        width: 300px;
+        transition: width 0.3s ease;
     }
     
     .sidebar.closed {
-        width: 100px;
+        width: 80px;
     }
 }
 
