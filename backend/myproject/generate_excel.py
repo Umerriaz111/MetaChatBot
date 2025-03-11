@@ -1,41 +1,54 @@
 import pandas as pd
+from io import StringIO
 
-# Data
-data = [
-    'The country with the most rivers in the world is Russia, which has over 36 major rivers. Other countries with significant numbers of rivers include Brazil with around 24 major rivers and Canada with approximately 12 major rivers.',
-    'Brazil has the most rivers in the world by a significant margin, primarily due to its Amazon River system, which has over 1,100 tributaries. Other countries with extensive river networks include Russia, Canada, China, and the United States.',
-    'The country with the most rivers in the world is Russia, which has over 36 major rivers. Other countries with significant numbers of rivers include Brazil with around 24 major rivers and Canada with approximately 12 major rivers.',
-    'Brazil has the most rivers in the world by a significant margin, primarily due to its Amazon River system, which has over 1,100 tributaries. Other countries with extensive river networks include Russia, Canada, China, and the United States.',
-    "The top 5 players with the most Ballon d'Or wins as of 2024 are: 1. Lionel Messi - 8 awards, 2. Cristiano Ronaldo - 5 awards, 3. Michel Platini - 3 awards, 4. Johann Cruyff - 3 awards, 5. Marco van Basten - 3 awards.",
-    "The top 5 players with the most Ballon d'Or awards are: 1. Lionel Messi - 8 times, 2. Cristiano Ronaldo - 5 times, 3. Michel Platini - 3 times, 4. Johan Cruyff - 3 times.",
-    "The top 5 players with the most Ballon d'Or awards as of 2024 are: 1. Lionel Messi - 8 awards, 2. Cristiano Ronaldo - 5 awards, 3. Michel Platini - 3 awards, 4. Johann Cruyff - 3 awards, 5. Marco van Basten - 3 awards.",
-    "The top 5 players with the most Ballon d'Or awards are: 1. Lionel Messi - 8 wins (2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023) 2. Cristiano Ronaldo - 5 wins (2008, 2013, 2014, 2016, 2017) 3. Michel Platini - 3 wins (1983, 1984, 1985) 4. Johan Cruyff - 3 wins (1971, 1973, 1974) 5. Marco van Basten - 3 wins (1988, 1989, 1992)"
-]
+football_data = """1. Lionel Messi (Barcelona) – 2011/12 – 73 Goals
+2. Ferenc Deak (Szentlorinci) – 1945/46 – 66 Goals
+2. Gerd Muller (Bayern Munich) – 1972/73 – 66 Goals
+4. Dixie Dean (Everton) – 1927/28 – 63 Goals
+5. Cristiano Ronaldo (Real Madrid) – 2014/15 – 61 Goals
+6. Cristiano Ronaldo (Real Madrid) – 2011/12 – 60 Goals
+6. Lionel Messi (Barcelona) – 2012/13 – 60 Goals
+8. Ferenc Deak (Ferencvaros) – 1948/49 – 59 Goals
+8. Luis Suarez (Barcelona) – 2015/16 – 59 Goals
+10. Lionel Messi (Barcelona) – 2014/15 – 58 Goals"""
 
-# Extract river data
-river_data = {
-    'Country': ['Russia', 'Brazil', 'Canada', 'China', 'United States'],
-    'Major Rivers': [36, 24, 12, 'Extensive', 'Extensive']
-}
+cricket_data = """1. KC Sangakkara (SL) - 2868 runs in 2013
+2. RT Ponting (AUS/ICC) - 2833 runs in 2005
+3. V Kohli (IND) - 2818 runs in 2017
+4. V Kohli (IND) - 2735 runs in 2018
+5. KS Williamson (NZ) - 2692 runs in 2015"""
 
-# Extract Ballon d'Or data
-ballon_dor_data = {
-    'Player': ['Lionel Messi', 'Cristiano Ronaldo', 'Michel Platini', 'Johann Cruyff', 'Marco van Basten'],
-    'Awards': [8, 5, 3, 3, 3],
-    'Years': [
-        '2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023',
-        '2008, 2013, 2014, 2016, 2017',
-        '1983, 1984, 1985',
-        '1971, 1973, 1974',
-        '1988, 1989, 1992'
-    ]
-}
+# Parsing football data
+football_lines = football_data.split('\n')
+football_records = []
+for line in football_lines:
+    parts = line.split(' – ')
+    rank_name_team = parts[0].split('. ')
+    rank = int(rank_name_team[0])
+    name_team = rank_name_team[1].strip(')')
+    name, team = name_team.rsplit(' (', 1)
+    season_goals = parts[1:]
+    football_records.append((rank, name, team, *season_goals))
 
-# Create DataFrames
-river_df = pd.DataFrame(river_data)
-ballon_dor_df = pd.DataFrame(ballon_dor_data)
+football_df = pd.DataFrame(football_records, columns=['Rank', 'Player', 'Team', 'Season', 'Goals'])
 
-# Write data to Excel
+# Parsing cricket data
+cricket_lines = cricket_data.split('\n')
+cricket_records = []
+for line in cricket_lines:
+    parts = line.split(' - ')
+    rank_name_country = parts[0].split('. ')
+    rank = int(rank_name_country[0])
+    name_country = rank_name_country[1].strip(')')
+    name, country = name_country.rsplit(' (', 1)
+    runs_year = parts[1].split(' runs in ')
+    runs = int(runs_year[0])
+    year = int(runs_year[1])
+    cricket_records.append((rank, name, country, runs, year))
+
+cricket_df = pd.DataFrame(cricket_records, columns=['Rank', 'Player', 'Country', 'Runs', 'Year'])
+
+# Writing to Excel
 with pd.ExcelWriter('abc.xlsx') as writer:
-    river_df.to_excel(writer, sheet_name='Rivers', index=False)
-    ballon_dor_df.to_excel(writer, sheet_name='Ballon dOr', index=False)
+    football_df.to_excel(writer, sheet_name='Football', index=False)
+    cricket_df.to_excel(writer, sheet_name='Cricket', index=False)
