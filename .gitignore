@@ -44,7 +44,7 @@ db.sqlite3
 
 
 
-backend\pyproject.toml
+backend\myproject\pyproject.toml
 backend\poetry.lock
 backend\db.sqlite3
 backend\myproject\db.sqlite3

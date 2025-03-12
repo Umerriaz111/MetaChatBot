@@ -27,7 +27,7 @@ import { FiDownload } from 'react-icons/fi';
 import ReactDOMServer from 'react-dom/server';
 
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://zpwvp5l5-8000.inc1.devtunnels.ms";
 
 const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
  

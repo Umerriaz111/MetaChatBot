@@ -76,12 +76,12 @@ MIDDLEWARE = [
 ]
 
 # Allow all domains (for development purposes)
-# CORS_ALLOW_ALL_ORIGINS = True  # For development, allows all origins
+CORS_ALLOW_ALL_ORIGINS = True  # For development, allows all origins
 
 # Or specify the exact allowed origin(s)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # React frontend
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",  # React frontend
+# ]
 
 ROOT_URLCONF = 'myproject.urls'
 

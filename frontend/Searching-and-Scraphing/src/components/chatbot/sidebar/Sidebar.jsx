@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { HashLoader } from "react-spinners";
-const BASE_URL="http://127.0.0.1:8000";
+const BASE_URL="https://zpwvp5l5-8000.inc1.devtunnels.ms";
 const user_id=1;
 
 const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isVisible }) => {
