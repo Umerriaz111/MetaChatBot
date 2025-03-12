@@ -26,8 +26,7 @@ import { BsChatDots } from 'react-icons/bs';
 import { FiDownload } from 'react-icons/fi';
 import ReactDOMServer from 'react-dom/server';
 
-
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
  
@@ -249,6 +248,122 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
     }
   };
 
+  const DownloadData = async () => {
+    if (!id) {
+      toast.error('No active session. Please create a new chat.', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    const currentTime = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Store message text and clear input
+    const messageText = "Downloading scraped data...";
+    setInput("");
+
+    // Add temporary user message immediately
+    const tempUserMessage = {
+      text: messageText,
+      time: currentTime,
+      sender: "user"
+    };
+    setMessages(prev => [...prev, tempUserMessage]);
+    
+    setLoading(true);
+
+    try {
+      const queryParams = new URLSearchParams({
+        query: messageText,
+        number_of_items: numResults,
+        engines: Array.from(selectedIcons).join(','),
+        message_type: 'download'
+      });
+
+      const response = await fetch(
+        `${BASE_URL}/api/sessions/${id}/messages/?${queryParams}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Check the content type of the response
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+        // Handle Excel file download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'scraped_data.xlsx'; // or any other name you want
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+
+        // Add success message
+        setMessages(prev => {
+          const messagesWithoutTemp = prev.slice(0, -1);
+          return [
+            ...messagesWithoutTemp,
+            {
+              text: "✅ Data has been successfully downloaded as an Excel file.",
+              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              sender: "support"
+            }
+          ];
+        });
+
+        toast.success('Excel file downloaded successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else {
+        // Handle JSON response (error case)
+        const data = await response.json();
+        setMessages(prev => {
+          const messagesWithoutTemp = prev.slice(0, -1);
+          return [
+            ...messagesWithoutTemp,
+            {
+              text: data.message || "Error downloading the file",
+              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              sender: "support"
+            }
+          ];
+        });
+      }
+
+    } catch (error) {
+      console.error("Error:", error);
+      const errorMessage = {
+        text: "Error while downloading the data. Please try again.",
+        time: currentTime,
+        sender: "support"
+      };
+      setMessages(prev => [...prev.slice(0, -1), errorMessage]);
+      
+      toast.error('Failed to download file', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -290,6 +405,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
         iconColor = '#ff9800';
         modeMessage = 'Downloading Scraped Data, Wait for a While';
         particleColors = ['#ff9800', '#f57c00', '#ffb74d'];
+        DownloadData();
         break;
       default:
         IconComponent = BiSearchAlt;
@@ -543,6 +659,11 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
     }
   };
 
+  const formatBoldText = (text) => {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
   const parseScrapedText = (text) => {
     try {
       // Check if text contains numbered list items
@@ -550,13 +671,13 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
         // Split the text into title and items
         const [title, ...items] = text.split('\n');
         return {
-          title: title.trim(),
+          title: formatBoldText(title.trim()),
           items: items
             .filter(item => item.trim()) // Remove empty lines
-            .map(item => item.trim())
+            .map(item => formatBoldText(item.trim()))
         };
       }
-      return text; // Return as is if not in expected format
+      return formatBoldText(text); // Apply bold formatting to regular text
     } catch (error) {
       console.error('Error parsing scraped text:', error);
       return text;
@@ -654,24 +775,22 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                     {/* Chatbot response */}
                     <div className="chat-message support">
                       <div className="search-results">
-                        {msg.message_type === 'scraping' ? (
+                        {msg.message_type === 'scraping' || msg.message_type === 'chatting' || msg.message_type === 'chating' ? (
                           (() => {
                             const parsedText = parseScrapedText(msg.chatbot_response);
                             if (typeof parsedText === 'object') {
                               return (
                                 <div className="scraped-content">
-                                  <h3 className="scraped-title">{parsedText.title}</h3>
+                                  <h3 className="scraped-title" dangerouslySetInnerHTML={{ __html: parsedText.title }}></h3>
                                   <div className="scraped-items">
                                     {parsedText.items.map((item, idx) => (
-                                      <div key={idx} className="scraped-item">
-                                        {item}
-                                      </div>
+                                      <div key={idx} className="scraped-item" dangerouslySetInnerHTML={{ __html: item }}></div>
                                     ))}
                                   </div>
                                 </div>
                               );
                             }
-                            return <p>{msg.chatbot_response}</p>;
+                            return <p dangerouslySetInnerHTML={{ __html: parsedText }}></p>;
                           })()
                         ) : Array.isArray(parsedResponse) ? (
                           parsedResponse.map((result, resultIndex) => (
@@ -683,7 +802,9 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                               </div>
                               <div className="result-content">
                                 {result.content && <p>{result.content}</p>}
-                                {result.url && (
+                              </div>
+
+                              {result.url && (
                                   <p className="result-url">
                                     URL: 
                                     <span className="link-container">
@@ -703,7 +824,6 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                                 {result.engine && (
                                   <p className="result-source">Result from: {result.engine}</p>
                                 )}
-                              </div>
                             </div>
                           ))
                         ) : (
@@ -817,18 +937,25 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
               </button>
             </div>
             <div className="search-icon">
-              <span 
-                className={`icon-container ${selectedIcons.has('Google') ? 'selected' : ''}`}
-                onClick={() => handleIconClick('Google')}
-              >
-                <FcGoogle fontSize={23} />
-              </span>
-              <span 
+
+            <span 
                 className={`icon-container ${selectedIcons.has('DuckDuckGo') ? 'selected' : ''}`}
                 onClick={() => handleIconClick('DuckDuckGo')}
               >
                 <SiDuckduckgo fontSize={23} />
               </span>
+
+              <span 
+                className={`icon-container ${selectedIcons.has('GitHub') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('GitHub')}
+              >
+                <FaGithub fontSize={23} />
+                
+              </span>
+
+
+             
+             
               <span 
                 className={`icon-container ${selectedIcons.has('Bing') ? 'selected' : ''}`}
                 onClick={() => handleIconClick('Bing')}
@@ -847,13 +974,7 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
               >
                 <TbBrandWikipedia fontSize={23} />
               </span>
-              <span 
-                className={`icon-container ${selectedIcons.has('GitHub') ? 'selected' : ''}`}
-                onClick={() => handleIconClick('GitHub')}
-              >
-                <FaGithub fontSize={23} />
-                
-              </span>
+             
               <span 
                 className={`icon-container ${selectedIcons.has('Amazon') ? 'selected' : ''}`}
                 onClick={() => handleIconClick('Amazon')}
@@ -866,6 +987,13 @@ const Chatbot = ({ chatName, id, onToggleSidebar, showSidebar }) => {
                 onClick={() => handleIconClick('Yandex')}
               >
                 <FaYandex fontSize={23} />
+              </span>
+
+              <span 
+                className={`icon-container ${selectedIcons.has('Google') ? 'selected' : ''}`}
+                onClick={() => handleIconClick('Google')}
+              >
+                <FcGoogle fontSize={23} />
               </span>
               
               <span 

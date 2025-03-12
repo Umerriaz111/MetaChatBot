@@ -7,8 +7,9 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { HashLoader } from "react-spinners";
-const BASE_URL="http://127.0.0.1:8000";
-const user_id=1;
+
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+const user_id = 1;
 
 const Sidebar = ({ onNewChat, onSelectChat, SelectedChat, initialSelectedId, isVisible }) => {
   const navigate = useNavigate();

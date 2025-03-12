@@ -122,6 +122,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 body {
@@ -202,7 +203,24 @@ body.sidebar-closed .chatbot-container {
     margin-bottom: 5px;
     font-size: 14px;
     line-height: 1.4;
-    font-family: poppins;
+}
+
+/* Styling for bold text in scraped data */
+.chat-message.support strong,
+.chat-message.support b {
+    font-weight: 600;
+}
+
+/* Ensure consistent text styling in chat messages */
+.chat-message {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.chat-message.support,
+.chat-message.user {
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .chat-message .time {
@@ -537,6 +555,30 @@ body.sidebar-closed .chatbot-container {
     background: rgba(74, 144, 226, 0.05);
     border-radius: 8px;
     border-left: 3px solid #4a90e2;
+    max-height: 200px; /* Set a specific max-height in pixels */
+    overflow-y: auto; /* Enable vertical scrolling when needed */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: rgba(74, 144, 226, 0.5) rgba(74, 144, 226, 0.1); /* For Firefox */
+}
+
+/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, etc.) */
+.result-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.result-content::-webkit-scrollbar-track {
+    background: rgba(74, 144, 226, 0.1);
+    border-radius: 4px;
+}
+
+.result-content::-webkit-scrollbar-thumb {
+    background-color: rgba(74, 144, 226, 0.5);
+    border-radius: 4px;
+}
+
+.result-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(74, 144, 226, 0.7);
 }
 
 .result-content::before {
@@ -587,6 +629,9 @@ body.sidebar-closed .chatbot-container {
 
 .search-result {
     animation: fadeInUp 0.3s ease forwards;
+}
+.result-url{
+    margin-top: 2%;
 }
 
 /* Make sure search results stand out in support messages */
@@ -1130,6 +1175,46 @@ body.dark-theme .menu-item.selected .menu-icon {
         max-width: 95%;
         padding: 8px;
         margin-bottom: 8px;
+    }
+
+    .chat-input {
+        padding: 8px 12px;
+    }
+
+    .chat-input_message {
+        padding: 6px 10px;
+    }
+
+    .search-icon {
+        padding: 6px 2px;
+        gap: 4px;
+    }
+
+    .number-input, .message-box, .send-button, .icon-container {
+        height: 34px;
+    }
+
+    .number-input {
+        width: 50px;
+    }
+
+    .message-box {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+
+    .search-icon {
+        padding: 6px 2px;
+        gap: 4px;
+    }
+
+    .icon-container {
+        width: 34px;
+        height: 34px;
+    }
+
+    .icon-container svg {
+        font-size: 18px;
     }
 }
 
