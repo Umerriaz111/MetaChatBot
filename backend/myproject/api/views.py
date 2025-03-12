@@ -164,7 +164,8 @@ class MessageList(generics.ListCreateAPIView):
 
             
             chatbot_response = search_results(user_message, number_of_items, engines) if llm_response != 'not safe' else 'Search results are not safe. Please try again.'
-            
+            if not chatbot_response:
+                chatbot_response = 'No search results found'
             # Save message to DB
             message = Message.objects.create(
                 session=session,
